@@ -1,6 +1,8 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { Provider } from "react-redux";
+import { store } from "./redux/store";
 import { auth } from "../firebase";
 
 export default function RootLayout() {
@@ -27,5 +29,9 @@ export default function RootLayout() {
   }, [user, loading, segments]);
 
   if (loading) return null;
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Provider store={store}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </Provider>
+  );
 }

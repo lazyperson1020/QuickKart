@@ -2,61 +2,69 @@ import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { signOut } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore"; // Imported query & where filters
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useRouter } from "expo-router";
+import { useDispatch } from "react-redux";
 import { auth, db } from "../../firebase";
 import CategoryRecycler from "../../components/CategoryRecycler";
 import { styles } from "../../styles/home";
 import useLocation from "../../components/useLocation";
 import ProductCard, { GroceryProduct } from "../../components/productCard";
-
+import { addProduct } from "../redux/cartSlice";
+import BannerRail from './banners';
 const stores = ["Store1", "Store2", "Store3", "Store4", "Store5", "Store6", "Store7", "Store8"];
 
 export default function Home() {
   const { latitude, longitude, errorMsg, address } = useLocation();
+  const router = useRouter();
+  const dispatch = useDispatch();
 
   // 1. Manage current selected category context
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // 2. Fetch or filter products from Firestore whenever selectedCategory changes
   useEffect(() => {
     const fetchFirestoreProducts = async () => {
       setLoading(true);
+      setFetchError(null);
       try {
-        let productsQuery;
-
-        if (selectedCategory === "All") {
-          // Get everything if "All" is active
-          productsQuery = collection(db, "products");
-        } else {
-          // Use Firestore query matching the category attribute string
-          productsQuery = query(
-            collection(db, "products"),
-            where("category", "==", selectedCategory)
-          );
-        }
+        const productsQuery =
+          selectedCategory === "All"
+            ? collection(db, "products")
+            : query(
+                collection(db, "products"),
+                // Firestore stores categories lowercase — normalise before comparing
+                where("category", "==", selectedCategory.toLowerCase())
+              );
 
         const querySnapshot = await getDocs(productsQuery);
         const fetchedItems: GroceryProduct[] = [];
-        
         querySnapshot.forEach((doc) => {
           fetchedItems.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
-
         setProducts(fetchedItems);
-      } catch (error) {
-        console.error("Error updating Firestore collection lists: ", error);
+      } catch (error: any) {
+        setFetchError(error?.message ?? "Failed to load products.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchFirestoreProducts();
-  }, [selectedCategory]); // 👈 Added selectedCategory as dependency array tracker
+  }, [selectedCategory]);
 
   const handleAddToCart = (productId: string) => {
-    console.log("Product Added to Basket ID:", productId);
+    const product = products.find((p) => p.id === productId);
+    if (product) dispatch(addProduct(product));
+  };
+
+  const handleProductPress = (product: GroceryProduct) => {
+    router.push({
+      pathname: "/(tabs)/productDetails",
+      params: { productJson: JSON.stringify(product) },
+    });
   };
 
   return (
@@ -100,7 +108,7 @@ export default function Home() {
         />
 
         {/* FEATURED BANNER */}
-        <View style={styles.bannerRow}>
+        {/* <View style={styles.bannerRow}>
           <View style={styles.bannerLeft}>
             <Text style={styles.bannerTitleLarge}>₹0 FEES</Text>
             <Text style={styles.bannerSubtitle}>Zero delivery fee</Text>
@@ -109,6 +117,9 @@ export default function Home() {
             <Text style={styles.bannerTitleSmall}>LOWEST PRICES</Text>
             <Text style={styles.bannerSubtitle}>Everyday deals</Text>
           </View>
+        </View> */}
+        <View style={{ marginTop: 20 }}>
+          <BannerRail />
         </View>
 
         {/* DYNAMIC PRODUCTS SECTION FROM FIRESTORE */}
@@ -118,6 +129,10 @@ export default function Home() {
         
         {loading ? (
           <ActivityIndicator size="large" color="#2e7d32" style={{ marginVertical: 20 }} />
+        ) : fetchError ? (
+          <Text style={{ textAlign: 'center', color: '#DC2626', marginVertical: 30, fontSize: 14, paddingHorizontal: 20 }}>
+            {fetchError}
+          </Text>
         ) : products.length === 0 ? (
           <Text style={{ textAlign: 'center', color: '#666', marginVertical: 30, fontSize: 14 }}>
             No products available in this category yet!
@@ -129,11 +144,12 @@ export default function Home() {
             contentContainerStyle={{ paddingLeft: 16, paddingBottom: 10 }}
           >
             {products.map((item) => (
-              <ProductCard 
-                key={item.id} 
-                product={item} 
-                onAddPress={handleAddToCart} 
-              />
+              <TouchableOpacity key={item.id} onPress={() => handleProductPress(item)} activeOpacity={0.85}>
+                <ProductCard
+                  product={item}
+                  onAddPress={handleAddToCart}
+                />
+              </TouchableOpacity>
             ))}
           </ScrollView>
         )}
