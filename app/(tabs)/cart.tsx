@@ -16,10 +16,9 @@ import { decrementQuantity, incrementQuantity, removeProduct } from '../redux/ca
 import { CartItem } from '../redux/cartSlice';
 import { RootState } from '../redux/store';
 import { styles } from '../../styles/cart';
-
+import  BillSummary from '../../components/BillSummary'
 export default function Cart() {
   const cart = useSelector((state: RootState) => state.cart);
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar backgroundColor="#35035C" barStyle="light-content" />
@@ -44,6 +43,11 @@ function Header({ count }: { count: number }) {
 
 function Body({ data }: { data: CartItem[] }) {
   const dispatch = useDispatch();
+
+  const itemTotal = data.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = itemTotal >= 99 ? 0 : 30;
+  const handlingFee = 0;
+  const totalPay = itemTotal + deliveryFee + handlingFee;
 
   const renderItem = ({ item, index }: { item: CartItem; index: number }) => (
     <View key={index} style={styles.card}>
@@ -94,16 +98,27 @@ function Body({ data }: { data: CartItem[] }) {
         renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          <BillSummary
+            itemTotal={itemTotal}
+            deliveryFee={deliveryFee}
+            handlingFee={handlingFee}
+            totalPay={totalPay}
+          />
+        }
       />
     </View>
   );
 }
 
 function Footer({ data }: { data: CartItem[] }) {
-  const total = data.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const itemTotal = data.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = itemTotal >= 99 ? 0 : 30;
+  const totalPay = itemTotal + deliveryFee;
+
   return (
     <TouchableOpacity style={styles.btn}>
-      <Text style={styles.btnText}>Continue to Payment ₹ {total}</Text>
+      <Text style={styles.btnText}>Continue to Payment ₹ {totalPay}</Text>
     </TouchableOpacity>
   );
 }

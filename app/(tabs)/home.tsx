@@ -4,20 +4,22 @@ import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from "rea
 import { signOut } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useRouter } from "expo-router";
-import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { auth, db } from "../../firebase";
 import CategoryRecycler from "../../components/CategoryRecycler";
 import { styles } from "../../styles/home";
 import useLocation from "../../components/useLocation";
 import ProductCard, { GroceryProduct } from "../../components/productCard";
-import { addProduct } from "../redux/cartSlice";
+import { RootState } from "../redux/store";
 import BannerRail from './banners';
 const stores = ["Store1", "Store2", "Store3", "Store4", "Store5", "Store6", "Store7", "Store8"];
 
 export default function Home() {
-  const { latitude, longitude, errorMsg, address } = useLocation();
+  const { errorMsg, address } = useLocation();
   const router = useRouter();
-  const dispatch = useDispatch();
+  const cart = useSelector((state: RootState) => state.cart);
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // 1. Manage current selected category context
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -55,11 +57,6 @@ export default function Home() {
     fetchFirestoreProducts();
   }, [selectedCategory]);
 
-  const handleAddToCart = (productId: string) => {
-    const product = products.find((p) => p.id === productId);
-    if (product) dispatch(addProduct(product));
-  };
-
   const handleProductPress = (product: GroceryProduct) => {
     router.push({
       pathname: "/(tabs)/productDetails",
@@ -70,18 +67,20 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+
         
         {/* HEADER */}
         <View style={styles.header}>
           <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.deliveryTime}>⚡ 10 minutes</Text>
-            <TouchableOpacity onPress={() => console.log("Coordinates clicked: ", latitude, longitude)}>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/address/addressList" as any)}>
               <Text numberOfLines={1} style={styles.address}>
                 {errorMsg ? errorMsg : `Home • ${address}`}
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => signOut(auth)} style={styles.profileButton}>
+          {/* <TouchableOpacity onPress={() => signOut(auth)} style={styles.profileButton}> */}
+          <TouchableOpacity onPress={() => router.push("/(tabs)/profile/profilePage" as any)}>
             <Text style={styles.profileIcon}>👤</Text>
           </TouchableOpacity>
         </View>
@@ -108,16 +107,6 @@ export default function Home() {
         />
 
         {/* FEATURED BANNER */}
-        {/* <View style={styles.bannerRow}>
-          <View style={styles.bannerLeft}>
-            <Text style={styles.bannerTitleLarge}>₹0 FEES</Text>
-            <Text style={styles.bannerSubtitle}>Zero delivery fee</Text>
-          </View>
-          <View style={styles.bannerRight}>
-            <Text style={styles.bannerTitleSmall}>LOWEST PRICES</Text>
-            <Text style={styles.bannerSubtitle}>Everyday deals</Text>
-          </View>
-        </View> */}
         <View style={{ marginTop: 20 }}>
           <BannerRail />
         </View>
@@ -145,16 +134,44 @@ export default function Home() {
           >
             {products.map((item) => (
               <TouchableOpacity key={item.id} onPress={() => handleProductPress(item)} activeOpacity={0.85}>
-                <ProductCard
-                  product={item}
-                  onAddPress={handleAddToCart}
-                />
+                <ProductCard product={item} />
               </TouchableOpacity>
             ))}
           </ScrollView>
         )}
 
       </ScrollView>
+
+      {cartCount > 0 && (
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/cart')}
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            right: 16,
+            backgroundColor: '#35035C',
+            borderRadius: 12,
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            elevation: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+            {cartCount} {cartCount === 1 ? 'item' : 'items'} · ₹{cartTotal}
+          </Text>
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+            View Cart →
+          </Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
