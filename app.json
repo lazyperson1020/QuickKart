@@ -1,10 +1,15 @@
 {
   "expo": {
-    "name": "quickkart",
+    "name": "Quickkart",
     "slug": "quickkart",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/quickkart-icon-v2.png",
+    "splash": {
+      "image": "./assets/quickkart-splash-v2.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "scheme": "quickkart",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,12 +19,15 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/quickkart-adaptive-icon-v2.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.itzme091.quickkart"
     },
     "web": {
       "output": "static",
@@ -39,11 +47,23 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow QuickKart to use your location."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cff71518-878f-4b27-89bf-eac0145eba78"
+      }
     }
   }
 }

@@ -86,3 +86,6 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+
+scripts/
+assests/MockData
