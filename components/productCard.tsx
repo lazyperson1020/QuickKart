@@ -5,14 +5,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addProduct, incrementQuantity, decrementQuantity } from '../app/redux/cartSlice';
 import { toggleWishlist } from '../app/redux/wishlistSlice';
 import { RootState } from '../app/redux/store';
-
+import Toast from 'react-native-toast-message';
 export interface GroceryProduct {
   id: string;
+  sku?: string;
   name: string;
-  weight: string;
   price: number;
   originalPrice: number;
   imageUrl: string;
+  weight: string;
+  position?: number;
+  stock: number;
+  category?: string;
+  brand?: string;
+  tags?: string[];
+  inStock?: boolean;
 }
 
 export default function ProductCard({ product }: { product: GroceryProduct }) {
@@ -24,16 +31,41 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
   const isWishlisted = wishlist.some((item) => item.id === product.id);
   const savings = (product.originalPrice || 0) - (product.price || 0);
 
+  const showStockToast = () => {
+  Toast.show({
+    type: 'error',
+    text1:
+      product.stock <= 0
+        ? 'This item is out of stock'
+        : `Only ${product.stock} unit(s) available`,
+    position: 'bottom',
+  });
+};
+
   return (
     <View style={styles.cardContainer}>
 
       {/* IMAGE + floating controls */}
       <View style={styles.imageWrapper}>
-        <Image
-          source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
+
+          {product.stock <= 0 && (
+            <View style={styles.soldOutBadge}>
+              <Text style={styles.soldOutText}>
+                Sold Out
+              </Text>
+            </View>
+          )}
+
+          <Image
+            source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
+            style={[
+              styles.productImage,
+              product.stock <= 0 && {
+                opacity: 0.35,
+              },
+            ]}
+            resizeMode="cover"
+          />
 
         {/* Wishlist heart — top-right */}
         <TouchableOpacity
@@ -51,21 +83,62 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         {/* ADD / qty controls — bottom-center */}
         {cartItem ? (
           <View style={styles.quantityContainer}>
-            <TouchableOpacity onPress={() => dispatch(decrementQuantity(product))} hitSlop={8}>
+            <TouchableOpacity
+              onPress={() => dispatch(decrementQuantity(product))}
+              hitSlop={8}
+            >
               <AntDesign name="minus" size={14} color="#e91e63" />
             </TouchableOpacity>
-            <Text style={styles.quantityText}>{cartItem.quantity}</Text>
-            <TouchableOpacity onPress={() => dispatch(incrementQuantity(product))} hitSlop={8}>
+
+            <Text style={styles.quantityText}>
+              {cartItem.quantity}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                if (cartItem.quantity >= product.stock) {
+                  showStockToast();
+                  return;
+                }
+
+                dispatch(incrementQuantity(product));
+              }}
+              hitSlop={8}
+            >
               <AntDesign name="plus" size={14} color="#e91e63" />
             </TouchableOpacity>
           </View>
+        ) : product.stock <= 0 ? (
+          <TouchableOpacity
+            style={styles.notifyButton}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={16}
+              color="#e91e63"
+            />
+
+            <Text style={styles.notifyText}>
+              Notify
+            </Text>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => dispatch(addProduct(product))}
+            onPress={() => {
+              if (product.stock <= 0) {
+                showStockToast();
+                return;
+              }
+
+              dispatch(addProduct(product));
+            }}
             activeOpacity={0.8}
           >
-            <Text style={styles.addButtonText}>ADD</Text>
+            <Text style={styles.addButtonText}>
+              ADD
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -203,4 +276,49 @@ const styles = StyleSheet.create({
     color: '#757575',
     marginTop: 2,
   },
+  notifyButton: {
+  position: 'absolute',
+  bottom: 8,
+  left: 12,
+  right: 12,
+
+  backgroundColor: '#fff',
+
+  borderWidth: 1.5,
+  borderColor: '#e91e63',
+
+  borderRadius: 8,
+
+  paddingVertical: 5,
+
+  flexDirection: 'row',
+
+  justifyContent: 'center',
+
+  alignItems: 'center',
+
+  gap: 4,
+},
+
+notifyText: {
+  color: '#e91e63',
+  fontWeight: '700',
+  fontSize: 13,
+},
+soldOutBadge: {
+  position: 'absolute',
+  top: 6,
+  left: 6,
+  backgroundColor: '#fff',
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 8,
+  zIndex: 100,
+},
+
+soldOutText: {
+  fontSize: 11,
+  fontWeight: '600',
+  color: '#555',
+},
 });

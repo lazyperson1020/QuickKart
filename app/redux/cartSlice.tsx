@@ -9,6 +9,7 @@ export interface CartItem {
   imageUrl: string;
   description?: string;
   quantity: number;
+  stock: number;
 }
 
 type CartState = CartItem[];
@@ -17,9 +18,20 @@ const CartSlice = createSlice({
   name: 'cart',
   initialState: [] as CartState,
   reducers: {
-    addProduct(state, action: PayloadAction<Omit<CartItem, 'quantity'>>) {
-      state.push({ ...action.payload, quantity: 1 });
-    },
+          addProduct(state, action) {
+        const existing = state.find(
+          item => item.id === action.payload.id
+        );
+
+        if (existing) {
+          existing.quantity += 1;
+        } else {
+          state.push({
+            ...action.payload,
+            quantity: 1,
+          });
+        }
+      },
     removeProduct(state, action: PayloadAction<Pick<CartItem, 'id'>>) {
       return state.filter(item => item.id !== action.payload.id);
     },
@@ -35,6 +47,7 @@ const CartSlice = createSlice({
       }
       product.quantity -= 1;
     },
+    
   },
 });
 

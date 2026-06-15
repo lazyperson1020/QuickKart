@@ -70,12 +70,14 @@ const BannerRail = () => {
   return (
     <FlatList
       horizontal
-      pagingEnabled
       showsHorizontalScrollIndicator={false}
+      snapToInterval={responsiveWidth(85) + 15}
+      decelerationRate="fast"
       data={banners}
       keyExtractor={item => item.id}
       renderItem={renderBanner}
       ItemSeparatorComponent={() => <View style={{ width: 15 }} />}
+      contentContainerStyle={{ paddingLeft: 16 , paddingRight: 16}}
     />
   );
 };

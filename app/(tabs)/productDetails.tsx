@@ -16,7 +16,7 @@ import { addProduct, decrementQuantity, incrementQuantity } from '../redux/cartS
 import { RootState } from '../redux/store';
 import { GroceryProduct } from '../../components/productCard';
 import { styles } from '../../styles/productDetails';
-
+import Toast from 'react-native-toast-message';
 type ProductWithDetails = GroceryProduct & { description?: string };
 
 export default function ProductDetails() {
@@ -69,14 +69,38 @@ function Body({
   const [descOpen, setDescOpen] = useState(false);
 
   const cartItem = cart.find((p) => p.id === product.id);
-
+      const showStockToast = () => {
+      Toast.show({
+        type: 'error',
+        text1:
+          product.stock <= 0
+            ? 'This item is out of stock'
+            : `Only ${product.stock} unit(s) available`,
+        position: 'bottom',
+      });
+    };
   return (
     <View style={styles.bodyContainer}>
       <Image
-        resizeMode="cover"
-        style={styles.productImage}
-        source={{ uri: product.imageUrl }}
-      />
+          resizeMode="cover"
+          style={[
+            styles.productImage,
+            product.stock <= 0 && styles.outOfStockImage,
+          ]}
+          source={{ uri: product.imageUrl }}
+        />
+
+        {product.stock <= 0 && (
+          <View style={styles.outOfStockBanner}>
+            <Text style={styles.outOfStockTitle}>
+              Current selection is out of stock
+            </Text>
+
+            <Text style={styles.outOfStockSubtitle}>
+              Please try changing the selection.
+            </Text>
+          </View>
+        )}
       <View style={styles.productInfoContainer}>
         <Text style={styles.productTitle}>{product.name}</Text>
         <View style={styles.seeAllContainer}>
@@ -102,7 +126,17 @@ function Body({
             <View style={styles.quantityContainer}>
               <AntDesign
                 name="plus-square"
-                onPress={() => dispatch(incrementQuantity(product))}
+                onPress={() => {
+        if (
+          cartItem &&
+          cartItem.quantity >= product.stock
+        ) {
+          showStockToast();
+          return;
+        }
+
+        dispatch(incrementQuantity(product));
+      }}
                 size={30}
                 color="#fff"
               />
@@ -115,11 +149,31 @@ function Body({
               />
             </View>
           ) : (
-            <TouchableOpacity
-              onPress={() => dispatch(addProduct(product))}
-              style={styles.addButton}>
-              <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
+            product.stock <= 0 ? (
+  <TouchableOpacity
+    style={styles.notifyButton}
+  >
+    <Text style={styles.notifyButtonText}>
+      Notify Me
+    </Text>
+  </TouchableOpacity>
+) : (
+  <TouchableOpacity
+    onPress={() => {
+      if (product.stock <= 0) {
+        showStockToast();
+        return;
+      }
+
+      dispatch(addProduct(product));
+    }}
+    style={styles.addButton}
+  >
+    <Text style={styles.addButtonText}>
+      Add
+    </Text>
+  </TouchableOpacity>
+)
           )}
         </View>
       </View>
@@ -152,15 +206,38 @@ function Footer({
   cart: (ProductWithDetails & { quantity: number })[];
 }) {
   const router = useRouter();
-  const inCart = cart.find((p) => p.id === product.id);
-  if (!inCart) return null;
+
+  const inCart = cart.find(
+    (p) => p.id === product.id
+  );
+
+  if (!inCart && product.stock > 0) {
+    return null;
+  }
+
   return (
     <View style={styles.footerContainer}>
-      <TouchableOpacity
-        style={styles.btnCart}
-        onPress={() => router.push('/(tabs)/cart' as any)}>
-        <Text style={styles.cartText}>View Cart</Text>
-      </TouchableOpacity>
+      {product.stock <= 0 ? (
+        <TouchableOpacity
+          style={styles.btnCart}
+        >
+          <Text style={styles.cartText}>
+            Notify me when back in stock
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.btnCart}
+          onPress={() =>
+            router.push('/(tabs)/cart' as any)
+          }
+        >
+          <Text style={styles.cartText}>
+            View Cart
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
+
 }

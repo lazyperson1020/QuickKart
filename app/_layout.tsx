@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 import { auth } from "../firebase";
-
+import Toast from "react-native-toast-message";
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,9 +29,13 @@ export default function RootLayout() {
   }, [user, loading, segments]);
 
   if (loading) return null;
+
   return (
     <Provider store={store}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <>
+        <Stack screenOptions={{ headerShown: false }} />
+        <Toast />
+      </>
     </Provider>
   );
 }

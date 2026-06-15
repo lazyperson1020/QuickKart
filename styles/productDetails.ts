@@ -143,4 +143,39 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
+  outOfStockImage: {
+  opacity: 0.4,
+},
+
+outOfStockBanner: {
+  backgroundColor: '#fdeaea',
+  marginHorizontal: 15,
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+},
+
+outOfStockTitle: {
+  color: '#d32f2f',
+  fontWeight: '700',
+  fontSize: 14,
+},
+
+outOfStockSubtitle: {
+  color: '#666',
+  marginTop: 4,
+  fontSize: 13,
+},
+
+notifyButton: {
+  backgroundColor: '#e91e63',
+  paddingHorizontal: 20,
+  paddingVertical: 8,
+  borderRadius: 10,
+},
+
+notifyButtonText: {
+  color: '#fff',
+  fontWeight: '600',
+},
 });

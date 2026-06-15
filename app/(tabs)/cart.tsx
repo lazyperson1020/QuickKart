@@ -17,6 +17,7 @@ import { CartItem } from '../redux/cartSlice';
 import { RootState } from '../redux/store';
 import { styles } from '../../styles/cart';
 import  BillSummary from '../../components/BillSummary'
+import Toast from 'react-native-toast-message';
 export default function Cart() {
   const cart = useSelector((state: RootState) => state.cart);
   return (
@@ -43,7 +44,13 @@ function Header({ count }: { count: number }) {
 
 function Body({ data }: { data: CartItem[] }) {
   const dispatch = useDispatch();
-
+  const showStockToast = (stock: number) => {
+  Toast.show({
+    type: 'error',
+    text1: `Only ${stock} unit(s) available`,
+    position: 'bottom',
+  });
+};
   const itemTotal = data.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = itemTotal >= 99 ? 0 : 30;
   const handlingFee = 0;
@@ -74,11 +81,19 @@ function Body({ data }: { data: CartItem[] }) {
         </View>
         <View style={styles.quantityContainer}>
           <AntDesign
-            name="plus-square"
-            onPress={() => dispatch(incrementQuantity(item))}
-            size={25}
-            color="#fff"
-          />
+          name="plus-square"
+          onPress={() => {
+
+            if (item.quantity >= item.stock) {
+              showStockToast(item.stock);
+              return;
+            }
+
+            dispatch(incrementQuantity(item));
+          }}
+          size={25}
+          color="#fff"
+        />
           <Text style={styles.quantity}>{item.quantity}</Text>
           <AntDesign
             name="minus-square"

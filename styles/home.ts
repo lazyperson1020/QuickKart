@@ -48,21 +48,25 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchBar: {
-    backgroundColor: "white",
-    margin: 20,
-    borderRadius: 15,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchPlaceholder: {
-    color: "#888",
-    fontSize: 15,
-  },
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#fff",
+  borderRadius: 16,
+  paddingHorizontal: 16,
+  height: 56,
+  marginHorizontal: 16,
+  marginTop: 16,
+},
+
+searchIcon: {
+  fontSize: 20,
+},
+
+searchPlaceholder: {
+  marginLeft: 10,
+  fontSize: 16,
+  color: "#888",
+},
   bannerRow: {
     flexDirection: "row",
     marginHorizontal: 20,
