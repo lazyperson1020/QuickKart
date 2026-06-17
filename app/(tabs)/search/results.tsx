@@ -25,8 +25,6 @@ const CATEGORIES = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
 const BOTTOM_STRIP_H = 52;
 const CART_BAR_H = 52;
 
-// ── Filter helpers ──────────────────────────────────────────────────────────
-
 function applyFilters(
   products: GroceryProduct[],
   query: string,
@@ -73,8 +71,6 @@ function applyFilters(
   }
   return sorted;
 }
-
-// ── Filter chip definitions ──────────────────────────────────────────────────
 
 type ChipKey = 'sort' | 'brand' | 'price' | 'offers' | 'inStock';
 

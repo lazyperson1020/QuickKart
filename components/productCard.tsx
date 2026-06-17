@@ -6,6 +6,8 @@ import { addProduct, incrementQuantity, decrementQuantity } from '../app/redux/c
 import { toggleWishlist } from '../app/redux/wishlistSlice';
 import { RootState } from '../app/redux/store';
 import Toast from 'react-native-toast-message';
+import { auth } from '../firebase';
+import { addToWishlistFirestore, removeFromWishlistFirestore } from '../app/utils/wishlistFirestore';
 export interface GroceryProduct {
   id: string;
   sku?: string;
@@ -20,6 +22,7 @@ export interface GroceryProduct {
   brand?: string;
   tags?: string[];
   inStock?: boolean;
+  description: string;
 }
 
 export default function ProductCard({ product }: { product: GroceryProduct }) {
@@ -70,7 +73,17 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         {/* Wishlist heart — top-right */}
         <TouchableOpacity
           style={styles.heartButton}
-          onPress={() => dispatch(toggleWishlist(product))}
+          onPress={() => {
+            dispatch(toggleWishlist(product));
+            const user = auth.currentUser;
+            if (user) {
+              if (isWishlisted) {
+                removeFromWishlistFirestore(user.uid, product.id).catch(console.error);
+              } else {
+                addToWishlistFirestore(user.uid, product).catch(console.error);
+              }
+            }
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -143,22 +156,25 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         )}
       </View>
 
-      {/* PRICE ROW */}
-      <View style={styles.priceRow}>
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>₹{product.price}</Text>
+      {/* TEXT CONTENT */}
+      <View style={styles.textContent}>
+        {/* PRICE ROW */}
+        <View style={styles.priceRow}>
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceText}>₹{product.price}</Text>
+          </View>
+          {product.originalPrice > product.price && (
+            <Text style={styles.originalPriceText}>₹{product.originalPrice}</Text>
+          )}
         </View>
-        {product.originalPrice > product.price && (
-          <Text style={styles.originalPriceText}>₹{product.originalPrice}</Text>
-        )}
+
+        {savings > 0 && <Text style={styles.savingsText}>₹{savings} OFF</Text>}
+
+        <Text style={styles.productName} numberOfLines={2}>
+          {product.name}
+        </Text>
+        <Text style={styles.weightText}>{product.weight}</Text>
       </View>
-
-      {savings > 0 && <Text style={styles.savingsText}>₹{savings} OFF</Text>}
-
-      <Text style={styles.productName} numberOfLines={2}>
-        {product.name}
-      </Text>
-      <Text style={styles.weightText}>{product.weight}</Text>
 
     </View>
   );
@@ -170,6 +186,10 @@ const styles = StyleSheet.create({
     marginRight: 14,
     backgroundColor: '#fff',
     borderRadius: 8,
+  },
+  textContent: {
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   imageWrapper: {
     width: 130,
@@ -270,6 +290,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 4,
     lineHeight: 16,
+    height: 32,
   },
   weightText: {
     fontSize: 11,

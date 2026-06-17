@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -24,6 +25,7 @@ export default function BottomSheet({
   height = SCREEN_HEIGHT * 0.65,
   children,
 }: BottomSheetProps) {
+  const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
@@ -97,6 +99,7 @@ export default function BottomSheet({
             styles.sheet,
             {
               height,
+              paddingBottom: insets.bottom,
               transform: [{ translateY }],
             },
           ]}

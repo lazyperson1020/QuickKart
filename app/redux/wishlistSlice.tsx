@@ -7,6 +7,8 @@ export interface WishlistItem {
   price: number;
   originalPrice: number;
   imageUrl: string;
+  stock: number;
+  category?: string;
 }
 
 const wishlistSlice = createSlice({
@@ -21,8 +23,11 @@ const wishlistSlice = createSlice({
         state.push(action.payload);
       }
     },
+    setWishlist(_state, action: PayloadAction<WishlistItem[]>) {
+      return action.payload;
+    },
   },
 });
 
-export const { toggleWishlist } = wishlistSlice.actions;
+export const { toggleWishlist, setWishlist } = wishlistSlice.actions;
 export default wishlistSlice.reducer;

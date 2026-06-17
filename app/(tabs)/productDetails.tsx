@@ -17,7 +17,7 @@ import { RootState } from '../redux/store';
 import { GroceryProduct } from '../../components/productCard';
 import { styles } from '../../styles/productDetails';
 import Toast from 'react-native-toast-message';
-type ProductWithDetails = GroceryProduct & { description?: string };
+type ProductWithDetails = Omit<GroceryProduct, 'description'> & { description?: string };
 
 export default function ProductDetails() {
   const { productJson } = useLocalSearchParams<{ productJson: string }>();
@@ -31,8 +31,8 @@ export default function ProductDetails() {
       : 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#E9D5FF' }}>
+      <StatusBar backgroundColor="#E9D5FF" barStyle="dark-content" />
       <Header />
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Body product={product} cart={cart} discountPct={discountPct} />
@@ -105,7 +105,7 @@ function Body({
         <Text style={styles.productTitle}>{product.name}</Text>
         <View style={styles.seeAllContainer}>
           <Text style={styles.seeAllText}>{`See all ${product.name} products`}</Text>
-          <Ionicons name="chevron-forward-outline" size={17} color="red" />
+          <Ionicons name="chevron-forward-outline" size={17} color="#e91e63" />
         </View>
         <Text style={styles.productWeight}>{product.weight}</Text>
 
@@ -124,29 +124,27 @@ function Body({
 
           {cartItem ? (
             <View style={styles.quantityContainer}>
-              <AntDesign
-                name="plus-square"
-                onPress={() => {
-        if (
-          cartItem &&
-          cartItem.quantity >= product.stock
-        ) {
-          showStockToast();
-          return;
-        }
-
-        dispatch(incrementQuantity(product));
-      }}
-                size={30}
-                color="#fff"
-              />
-              <Text style={styles.quantity}>{cartItem.quantity}</Text>
-              <AntDesign
-                name="minus-square"
+              <TouchableOpacity
                 onPress={() => dispatch(decrementQuantity(product))}
-                size={30}
-                color="#fff"
-              />
+                style={styles.quantityBtn}
+                hitSlop={6}
+              >
+                <AntDesign name="minus" size={16} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.quantity}>{cartItem.quantity}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (cartItem.quantity >= product.stock) {
+                    showStockToast();
+                    return;
+                  }
+                  dispatch(incrementQuantity(product));
+                }}
+                style={styles.quantityBtn}
+                hitSlop={6}
+              >
+                <AntDesign name="plus" size={16} color="#fff" />
+              </TouchableOpacity>
             </View>
           ) : (
             product.stock <= 0 ? (
@@ -185,7 +183,7 @@ function Body({
         <Ionicons
           name={descOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
           size={20}
-          color="red"
+          color="#e91e63"
         />
       </TouchableOpacity>
 

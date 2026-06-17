@@ -1,0 +1,251 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../redux/store';
+import { toggleWishlist, WishlistItem } from '../../redux/wishlistSlice';
+import { GroceryProduct } from '../../../components/productCard';
+import ProductGridCard from '../../../components/ProductGridCard';
+import { auth } from '../../../firebase';
+import { removeFromWishlistFirestore } from '../../utils/wishlistFirestore';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+export default function WishlistPage() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const wishlist = useSelector((state: RootState) => state.wishlist);
+  const cart = useSelector((state: RootState) => state.cart);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleRemove = (item: WishlistItem) => {
+    dispatch(toggleWishlist(item));
+    const user = auth.currentUser;
+    if (user) {
+      removeFromWishlistFirestore(user.uid, item.id).catch(console.error);
+    }
+  };
+
+  const renderItem = ({ item }: { item: WishlistItem }) => (
+    <View style={styles.cardWrapper}>
+      <ProductGridCard product={item as GroceryProduct} />
+      <TouchableOpacity
+        style={styles.heartOverlay}
+        onPress={() => handleRemove(item)}
+        hitSlop={6}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="heart" size={20} color="#e91e63" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color="#111" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Wishlist</Text>
+        <TouchableOpacity hitSlop={8}>
+          <Ionicons name="search-outline" size={24} color="#111" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Pink banner */}
+      <View style={styles.banner}>
+        <View style={styles.bannerIconRow}>
+          <View style={styles.bannerIconBubble}>
+            <Ionicons name="shirt-outline" size={22} color="#e91e63" />
+          </View>
+          <View style={styles.bannerIconBubble}>
+            <Ionicons name="watch-outline" size={22} color="#e91e63" />
+          </View>
+          <View style={[styles.bannerIconBubble, styles.bannerIconCenter]}>
+            <Ionicons name="heart" size={28} color="#e91e63" />
+          </View>
+          <View style={styles.bannerIconBubble}>
+            <Ionicons name="cafe-outline" size={22} color="#e91e63" />
+          </View>
+          <View style={styles.bannerIconBubble}>
+            <Ionicons name="basketball-outline" size={22} color="#e91e63" />
+          </View>
+        </View>
+      </View>
+
+      {/* Product grid or empty state */}
+      {wishlist.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="heart-outline" size={64} color="#e91e63" />
+          <Text style={styles.emptyTitle}>Your wishlist is empty</Text>
+          <Text style={styles.emptySubtitle}>
+            Tap the heart on any product to save it here
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={wishlist}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: cartCount > 0 ? 130 : 24 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* Cart bar */}
+      {cartCount > 0 && (
+        <TouchableOpacity
+          style={styles.cartBar}
+          onPress={() => router.push('/(tabs)/cart')}
+        >
+          <Text style={styles.cartBarLeft}>
+            {cartCount} {cartCount === 1 ? 'item' : 'items'} · ₹{cartTotal}
+          </Text>
+          <Text style={styles.cartBarRight}>View Cart →</Text>
+        </TouchableOpacity>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+  },
+  banner: {
+    backgroundColor: '#fce4ec',
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bannerIconBubble: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  bannerIconCenter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#f8bbd0',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  cardWrapper: {
+    position: 'relative',
+    width: (SCREEN_WIDTH - 40) / 2,
+  },
+  heartOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 5,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    zIndex: 10,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  cartBar: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
+    backgroundColor: '#35035C',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  cartBarLeft: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cartBarRight: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});
