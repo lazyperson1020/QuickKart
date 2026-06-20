@@ -2,11 +2,11 @@ import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ import { GroceryProduct } from '../../../components/productCard';
 import ProductGridCard from '../../../components/ProductGridCard';
 import { auth } from '../../../firebase';
 import { removeFromWishlistFirestore } from '../../utils/wishlistFirestore';
+import FloatingCartPanel, { useCartPanelScrollHandler } from '../../../components/FloatingCartPanel';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -24,9 +25,8 @@ export default function WishlistPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const wishlist = useSelector((state: RootState) => state.wishlist);
-  const cart = useSelector((state: RootState) => state.cart);
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const scrollHandler = useCartPanelScrollHandler();
 
   const handleRemove = (item: WishlistItem) => {
     dispatch(toggleWishlist(item));
@@ -94,32 +94,20 @@ export default function WishlistPage() {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           data={wishlist}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: cartCount > 0 ? 130 : 24 },
-          ]}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
         />
       )}
 
-      {/* Cart bar */}
-      {cartCount > 0 && (
-        <TouchableOpacity
-          style={styles.cartBar}
-          onPress={() => router.push('/(tabs)/cart')}
-        >
-          <Text style={styles.cartBarLeft}>
-            {cartCount} {cartCount === 1 ? 'item' : 'items'} · ₹{cartTotal}
-          </Text>
-          <Text style={styles.cartBarRight}>View Cart →</Text>
-        </TouchableOpacity>
-      )}
+      <FloatingCartPanel noNavBar />
     </SafeAreaView>
   );
 }
@@ -178,10 +166,11 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    paddingBottom: 180,
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   cardWrapper: {
     position: 'relative',
@@ -219,33 +208,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
-  },
-  cartBar: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: '#35035C',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  cartBarLeft: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cartBarRight: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
   },
 });

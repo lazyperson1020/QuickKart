@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
 import {
-  FlatList,
-  View,
   Text,
   ActivityIndicator,
   StyleSheet,
   ListRenderItem,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import ProductGridCard from './ProductGridCard';
 import { GroceryProduct } from './productCard';
@@ -18,6 +17,8 @@ interface ProductGridProps {
   emptyMessage?: string;
   ListHeaderComponent?: React.ReactElement | null;
   contentPaddingBottom?: number;
+  onScroll?: any;
+  scrollEventThrottle?: number;
 }
 
 export default function ProductGrid({
@@ -27,6 +28,8 @@ export default function ProductGrid({
   emptyMessage = 'No products found.',
   ListHeaderComponent,
   contentPaddingBottom = 120,
+  onScroll,
+  scrollEventThrottle = 16,
 }: ProductGridProps) {
   const router = useRouter();
 
@@ -58,7 +61,7 @@ export default function ProductGrid({
   }
 
   return (
-    <FlatList
+    <Animated.FlatList
       data={products}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
@@ -68,6 +71,8 @@ export default function ProductGrid({
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={ListHeaderComponent}
       removeClippedSubviews
+      onScroll={onScroll}
+      scrollEventThrottle={scrollEventThrottle}
     />
   );
 }
@@ -96,6 +101,6 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 6,
   },
 });

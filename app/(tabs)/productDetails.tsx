@@ -1,25 +1,56 @@
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Image,
   StatusBar,
+  Dimensions,
 } from 'react-native';
-import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { AntDesign } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons, AntDesign, Feather } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  Easing,
+} from 'react-native-reanimated';
 import { addProduct, decrementQuantity, incrementQuantity } from '../redux/cartSlice';
 import { RootState } from '../redux/store';
 import { GroceryProduct } from '../../components/productCard';
-import { styles } from '../../styles/productDetails';
 import Toast from 'react-native-toast-message';
+
+const { width } = Dimensions.get('window');
+
+// High-Fidelity Exact Zepto Design Spec Tokens
+const ZEPTO_PURPLE = '#3c1053';
+const ZEPTO_PINK = '#ff3269';
+const ZEPTO_TEXT_DARK = '#1c1c24';
+const ZEPTO_TEXT_MUTED = '#8b8ba0';
+const ZEPTO_BORDER_LIGHT = '#eaeaf2';
+
+// Safe Layout Grid Constrained Space Variables
+const PADDING_HORIZONTAL = 16;
+const CONTAINER_WIDTH = width - PADDING_HORIZONTAL * 2;
+const GAP_SPACE = 12;
+
+// Strict Mathematical State Metric Multipliers
+const INITIAL_CART_WIDTH = 48; 
+const INITIAL_ADD_WIDTH = CONTAINER_WIDTH - INITIAL_CART_WIDTH - GAP_SPACE;
+
+// Perfect 50% / 50% Active Screen Allocation Splitting Formula
+const ACTIVE_FINAL_WIDTH = (CONTAINER_WIDTH - GAP_SPACE) / 2;
+
 type ProductWithDetails = Omit<GroceryProduct, 'description'> & { description?: string };
 
 export default function ProductDetails() {
+  const router = useRouter();
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const { productJson } = useLocalSearchParams<{ productJson: string }>();
   const product: ProductWithDetails = JSON.parse(productJson ?? '{}');
   const dispatch = useDispatch();
@@ -30,212 +61,509 @@ export default function ProductDetails() {
       ? Math.round((1 - product.price / product.originalPrice) * 100)
       : 0;
 
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const cartItem = cart.find((p) => p.id === product.id);
+  const currentQuantity = cartItem ? cartItem.quantity : 0;
+
+  // Linear layout step timeline to protect against snapping overshoots
+  const layoutProgressTimeline = useSharedValue(0);
+
+  useEffect(() => {
+    if (currentQuantity > 0) {
+      layoutProgressTimeline.value = withTiming(1, {
+        duration: 250,
+        easing: Easing.out(Easing.quad),
+      });
+    } else {
+      layoutProgressTimeline.value = withTiming(0, {
+        duration: 200,
+        easing: Easing.linear,
+      });
+    }
+  }, [currentQuantity]);
+
+  // Linear Layout Style: Left View Cart banner grows into exactly 50% container space
+  const animatedCartButtonStyle = useAnimatedStyle(() => {
+    return {
+      width: interpolate(
+        layoutProgressTimeline.value,
+        [0, 1],
+        [INITIAL_CART_WIDTH, ACTIVE_FINAL_WIDTH]
+      ),
+    };
+  });
+
+  // Linear Layout Style: Right Add selection button shrinks down into exactly 50% container space
+  const animatedAddButtonContainerStyle = useAnimatedStyle(() => {
+    return {
+      width: interpolate(
+        layoutProgressTimeline.value,
+        [0, 1],
+        [INITIAL_ADD_WIDTH, ACTIVE_FINAL_WIDTH]
+      ),
+    };
+  });
+
+  // Clean opacity transitions for string items appearing inside expanding panels
+  const animatedCartContentOpacityStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(layoutProgressTimeline.value, [0.6, 1], [0, 1]),
+    };
+  });
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#E9D5FF' }}>
-      <StatusBar backgroundColor="#E9D5FF" barStyle="dark-content" />
-      <Header />
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <Body product={product} cart={cart} discountPct={discountPct} />
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      
+      {/* Top Navbar Header Component */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={ZEPTO_TEXT_DARK} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.rightHeaderAction}>
+          <Feather name="search" size={22} color={ZEPTO_TEXT_DARK} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Product Image Panel Stage Frame */}
+        <View style={styles.imageStage}>
+          <Image
+            resizeMode="contain"
+            style={[styles.mainProductImage, product.stock <= 0 && styles.dimmedStockImage]}
+            source={{ uri: product.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }}
+          />
+          {discountPct > 0 && (
+            <View style={styles.floatingDiscountBadge}>
+              <Text style={styles.floatingDiscountText}>{discountPct}% OFF</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Brand Information Layout Block */}
+        <View style={styles.infoMetaBlock}>
+          {/* <Text style={styles.brandTitleTag}>Fresh Essentials</Text> */}
+          <Text style={styles.mainProductName}>{product.name}</Text>
+          
+          <TouchableOpacity style={styles.brandLinkRow} activeOpacity={0.7}>
+            <Text style={styles.brandLinkText}>See all products from this brand</Text>
+            <Ionicons name="chevron-forward" size={14} color={ZEPTO_PINK} />
+          </TouchableOpacity>
+
+          <Text style={styles.productMeasurementUnit}>{product.weight || '1 unit'}</Text>
+          
+          {/* <View style={styles.horizontalSectionDivider} /> */}
+
+          {/* STANDALONE BODY PRICE DOMAIN: Anchored perfectly in the content feed scroll layer */}
+          <View style={styles.staticPriceDisplayRow}>
+            <View style={styles.primaryPriceDisplayRow}>
+              <Text style={styles.currencySymbolMark}>₹</Text>
+              <Text style={styles.actualPriceNumber}>{product.price}</Text>
+              {product.originalPrice > product.price && (
+                <Text style={styles.crossedOriginalPrice}>₹{product.originalPrice}</Text>
+              )}
+            </View>
+            <Text style={styles.taxDisclaimerHint}>Inclusive of all taxes</Text>
+          </View>
+
+          {/* Express Delivery ETA Strip */}
+          {/* <View style={styles.expressDeliveryBar}>
+            <Ionicons name="flash" size={16} color="#ffb300" />
+            <Text style={styles.expressDeliveryBarText}>
+              Delivering to you in <Text style={styles.boldWeightHighlight}>10 mins</Text>
+            </Text>
+          </View> */}
+
+          {/* Detailed Product Specifications */}
+          <View style={styles.productInformationAccordion}>
+            <Text style={styles.accordionHeadingTitle}>Product Details</Text>
+            <Text style={styles.accordionBodyText}>
+              {product.description || 'Fresh stock sourced directly from verified regional fulfillment distribution clusters under temperature-regulated transport profiles.'}
+            </Text>
+          </View>
+        </View>
       </ScrollView>
-      <Footer product={product} cart={cart} />
+
+      {/* PERSISTENT FLUID WHITE BOTTOM PANEL DOCK CONTAINER */}
+      <View style={[styles.fixedPersistentBottomDock, { paddingBottom: bottomInset + 12 }]}>
+        <View style={styles.internalDockFlexRow}>
+          
+          {/* COMPONENT 1 (LEFT): White View Cart Button */}
+          <Animated.View style={[styles.purpleCartButtonWrapper, animatedCartButtonStyle]}>
+            <TouchableOpacity
+              style={styles.capsuleTouchSurface}
+              activeOpacity={totalCartCount > 0 ? 0.9 : 1}
+              onPress={() => totalCartCount > 0 && router.push('/(tabs)/cart' as any)}
+            >
+              <View style={styles.capsuleLeftBasketInfo}>
+                <View style={styles.footerBasketBadgeFrame}>
+                  <Ionicons name="cart-outline" size={22} color={ZEPTO_TEXT_DARK} />
+                  {totalCartCount > 0 && (
+                    <View style={styles.basketBadgeCountBubble}>
+                      <Text style={styles.basketBadgeCountBubbleText}>{totalCartCount}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {currentQuantity > 0 && (
+                  <Animated.View style={[styles.capsulePriceTextStack, animatedCartContentOpacityStyle]}>
+                    <Text style={styles.viewCartActionText}>View Cart</Text>
+                  </Animated.View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* COMPONENT 2 (RIGHT): ADD Trigger / Stepper Control Matrix Block (Fitted to take 50% Space on active) */}
+          <Animated.View style={[styles.rightActionButtonSqueezeTarget, animatedAddButtonContainerStyle]}>
+            {currentQuantity > 0 ? (
+              <View style={styles.activeQuantityController}>
+                <TouchableOpacity
+                  style={styles.quantityStepTouch}
+                  onPress={() => dispatch(decrementQuantity(product))}
+                >
+                  <AntDesign name="minus" size={14} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.quantityDisplayDigit}>{currentQuantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityStepTouch}
+                  onPress={() => {
+                    if (cartItem && cartItem.quantity >= product.stock) {
+                      Toast.show({ type: 'error', text1: 'Stock limit reached' });
+                      return;
+                    }
+                    dispatch(incrementQuantity(product));
+                  }}
+                >
+                  <AntDesign name="plus" size={14} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            ) : product.stock <= 0 ? (
+              <View style={styles.outOfStockBadgeLabel}>
+                <Text style={styles.outOfStockBadgeLabelText}>Out of Stock</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.cleanZeptoAddButton}
+                activeOpacity={0.85}
+                onPress={() => dispatch(addProduct(product))}
+              >
+                <Text style={styles.cleanZeptoAddButtonText}>Add to cart</Text>
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
-function Header() {
-  const router = useRouter();
-  return (
-    <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={25} color="#111" />
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <Ionicons name="search-outline" size={25} color="#111" />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function Body({
-  product,
-  cart,
-  discountPct,
-}: {
-  product: ProductWithDetails;
-  cart: (ProductWithDetails & { quantity: number })[];
-  discountPct: number;
-}) {
-  const dispatch = useDispatch();
-  const [descOpen, setDescOpen] = useState(false);
-
-  const cartItem = cart.find((p) => p.id === product.id);
-      const showStockToast = () => {
-      Toast.show({
-        type: 'error',
-        text1:
-          product.stock <= 0
-            ? 'This item is out of stock'
-            : `Only ${product.stock} unit(s) available`,
-        position: 'bottom',
-      });
-    };
-  return (
-    <View style={styles.bodyContainer}>
-      <Image
-          resizeMode="cover"
-          style={[
-            styles.productImage,
-            product.stock <= 0 && styles.outOfStockImage,
-          ]}
-          source={{ uri: product.imageUrl }}
-        />
-
-        {product.stock <= 0 && (
-          <View style={styles.outOfStockBanner}>
-            <Text style={styles.outOfStockTitle}>
-              Current selection is out of stock
-            </Text>
-
-            <Text style={styles.outOfStockSubtitle}>
-              Please try changing the selection.
-            </Text>
-          </View>
-        )}
-      <View style={styles.productInfoContainer}>
-        <Text style={styles.productTitle}>{product.name}</Text>
-        <View style={styles.seeAllContainer}>
-          <Text style={styles.seeAllText}>{`See all ${product.name} products`}</Text>
-          <Ionicons name="chevron-forward-outline" size={17} color="#e91e63" />
-        </View>
-        <Text style={styles.productWeight}>{product.weight}</Text>
-
-        <View style={styles.priceContainer}>
-          <View style={styles.priceDetails}>
-            <Text style={styles.productPrice}>₹{product.price}</Text>
-            {product.originalPrice > product.price && (
-              <Text style={styles.originalPrice}>₹{product.originalPrice}</Text>
-            )}
-            {discountPct > 0 && (
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>{discountPct}% OFF</Text>
-              </View>
-            )}
-          </View>
-
-          {cartItem ? (
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                onPress={() => dispatch(decrementQuantity(product))}
-                style={styles.quantityBtn}
-                hitSlop={6}
-              >
-                <AntDesign name="minus" size={16} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.quantity}>{cartItem.quantity}</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  if (cartItem.quantity >= product.stock) {
-                    showStockToast();
-                    return;
-                  }
-                  dispatch(incrementQuantity(product));
-                }}
-                style={styles.quantityBtn}
-                hitSlop={6}
-              >
-                <AntDesign name="plus" size={16} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            product.stock <= 0 ? (
-  <TouchableOpacity
-    style={styles.notifyButton}
-  >
-    <Text style={styles.notifyButtonText}>
-      Notify Me
-    </Text>
-  </TouchableOpacity>
-) : (
-  <TouchableOpacity
-    onPress={() => {
-      if (product.stock <= 0) {
-        showStockToast();
-        return;
-      }
-
-      dispatch(addProduct(product));
-    }}
-    style={styles.addButton}
-  >
-    <Text style={styles.addButtonText}>
-      Add
-    </Text>
-  </TouchableOpacity>
-)
-          )}
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.productDescriptionContainer}
-        onPress={() => setDescOpen(!descOpen)}>
-        <Text style={styles.productDescriptionTitle}>Product Description</Text>
-        <Ionicons
-          name={descOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
-          size={20}
-          color="#e91e63"
-        />
-      </TouchableOpacity>
-
-      {descOpen && product.description ? (
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.descText}>{product.description}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function Footer({
-  product,
-  cart,
-}: {
-  product: ProductWithDetails;
-  cart: (ProductWithDetails & { quantity: number })[];
-}) {
-  const router = useRouter();
-
-  const inCart = cart.find(
-    (p) => p.id === product.id
-  );
-
-  if (!inCart && product.stock > 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.footerContainer}>
-      {product.stock <= 0 ? (
-        <TouchableOpacity
-          style={styles.btnCart}
-        >
-          <Text style={styles.cartText}>
-            Notify me when back in stock
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.btnCart}
-          onPress={() =>
-            router.push('/(tabs)/cart' as any)
-          }
-        >
-          <Text style={styles.cartText}>
-            View Cart
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
-}
+const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  headerContainer: {
+    height: 56,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f4f4f6',
+  },
+  backButton: {
+    padding: 4,
+  },
+  rightHeaderAction: {
+    padding: 4,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  imageStage: {
+    width: width,
+    height: width * 0.88,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    padding: 32,
+  },
+  mainProductImage: {
+    width: '100%',
+    height: '100%',
+  },
+  dimmedStockImage: {
+    opacity: 0.35,
+  },
+  floatingDiscountBadge: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: '#2252e3',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  floatingDiscountText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  infoMetaBlock: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    backgroundColor: '#ffffff',
+  },
+  brandTitleTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: ZEPTO_PINK,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  mainProductName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: ZEPTO_TEXT_DARK,
+    lineHeight: 28,
+  },
+  brandLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  brandLinkText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: ZEPTO_PINK,
+    marginRight: 2,
+  },
+  productMeasurementUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: ZEPTO_TEXT_MUTED,
+    marginTop: 12,
+  },
+  horizontalSectionDivider: {
+    height: 1,
+    backgroundColor: ZEPTO_BORDER_LIGHT,
+    marginVertical: 16,
+  },
+  staticPriceDisplayRow: {
+    marginBottom: 0,
+  },
+  primaryPriceDisplayRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  currencySymbolMark: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: ZEPTO_TEXT_DARK,
+    marginRight: 1,
+  },
+  actualPriceNumber: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: ZEPTO_TEXT_DARK,
+  },
+  crossedOriginalPrice: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: ZEPTO_TEXT_MUTED,
+    textDecorationLine: 'line-through',
+    marginLeft: 6,
+  },
+  taxDisclaimerHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: ZEPTO_TEXT_MUTED,
+    marginTop: 1,
+  },
+  expressDeliveryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f4f5fa',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#e8e9f3',
+  },
+  expressDeliveryBarText: {
+    fontSize: 12,
+    color: ZEPTO_PURPLE,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  boldWeightHighlight: {
+    fontWeight: '900',
+  },
+  productInformationAccordion: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: ZEPTO_BORDER_LIGHT,
+    paddingTop: 16,
+  },
+  accordionHeadingTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: ZEPTO_TEXT_DARK,
+    marginBottom: 6,
+  },
+  accordionBodyText: {
+    fontSize: 13,
+    color: '#4f4f62',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  fixedPersistentBottomDock: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f4',
+    paddingTop: 12,
+    paddingHorizontal: PADDING_HORIZONTAL,
+  },
+  internalDockFlexRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    height: 48,
+  },
+  purpleCartButtonWrapper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: ZEPTO_BORDER_LIGHT,
+    height: 48,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  capsuleTouchSurface: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    height: '100%',
+    paddingHorizontal: 12,
+  },
+  capsuleLeftBasketInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerBasketBadgeFrame: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+    height: 24,
+  },
+  basketBadgeCountBubble: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: ZEPTO_PINK,
+    borderRadius: 7,
+    minWidth: 14,
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  basketBadgeCountBubbleText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  capsulePriceTextStack: {
+    justifyContent: 'center',
+    marginLeft: 14,
+  },
+  capsuleMainPriceValue: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  capsuleSubtextLabel: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  capsuleRightLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewCartActionText: {
+    color: ZEPTO_TEXT_DARK,
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  rightActionButtonSqueezeTarget: {
+    height: 48,
+    justifyContent: 'center',
+  },
+  cleanZeptoAddButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: ZEPTO_PINK,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cleanZeptoAddButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  activeQuantityController: {
+    width: '100%',
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: ZEPTO_PINK,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  quantityStepTouch: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quantityDisplayDigit: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  outOfStockBadgeLabel: {
+    backgroundColor: '#f3f3f6',
+    borderRadius: 8,
+    height: 48,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outOfStockBadgeLabelText: {
+    color: ZEPTO_TEXT_MUTED,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});

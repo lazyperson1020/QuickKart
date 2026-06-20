@@ -4,8 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import Animated, { useAnimatedStyle, interpolate, Extrapolate, makeMutable } from "react-native-reanimated";
 
-const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders"];
+const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders", "/cart","/profile/wishlistPage"];
+
+// Global thread pointers shared with home.tsx
+export const globalLayoutScrollY = makeMutable(0);
+export const globalBottomBarVisible = makeMutable(1); // 1 = visible, 0 = hidden
+
+// Core visual content size constant without notch considerations
+export const TAB_BAR_RAW_HEIGHT = 54; 
 
 function BottomTabBar() {
   const router = useRouter();
@@ -26,24 +34,69 @@ function BottomTabBar() {
     }
   }
 
+  // Dynamic height mapping adapts on-the-fly to your active mobile screen configuration context
+  const totalBarHeightOnDevice = TAB_BAR_RAW_HEIGHT + insets.bottom;
+
+  /* ==================== SCREEN COMPLIANT ANIMATION MATRIX ==================== */
+  const animatedTabBarStyle = useAnimatedStyle(() => {
+    const hiddenOffscreenDistance = totalBarHeightOnDevice + 20;
+    
+    const translateY = interpolate(
+      globalBottomBarVisible.value,
+      [0, 1],
+      [hiddenOffscreenDistance, 0],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }],
+    };
+  });
+  /* ========================================================================= */
+
   if (shouldHide === true) {
     return null;
   }
 
   const tabs = [
-    { path: "/home",                icon: "home-outline",   activeIcon: "home",   label: "Home"    },
-    { path: "/search",              icon: "search-outline", activeIcon: "search", label: "Search"  },
-    { path: "/cart",                icon: "cart-outline",   activeIcon: "cart",   label: "Cart"    },
-    { path: "/profile/profilePage", icon: "person-outline", activeIcon: "person", label: "Profile" },
-  ];
+  { 
+    path: "/home", 
+    icon: "home-outline", 
+    activeIcon: "home", 
+    label: "Home" 
+  },
+  { 
+    path: "/allProducts", 
+    icon: "grid-outline", 
+    activeIcon: "grid", 
+    label: "Categories" 
+  },
+  { 
+    path: "/orders", // Points to your order history screen so users can quickly tap previous orders
+    icon: "refresh-outline", 
+    activeIcon: "refresh", 
+    label: "Buy Again" 
+  },
+  { 
+    path: "/search", // Can point to a dynamic promotions feed or your search/results hub
+    icon: "gift-outline", 
+    activeIcon: "gift", 
+    label: "Deals" 
+  },
+];
 
-  let safeBottomPadding = insets.bottom;
-  if (safeBottomPadding < 8) {
-    safeBottomPadding = 8;
-  }
+  // Set minimum safety buffer context parameters
+  const safeBottomPadding = insets.bottom > 0 ? insets.bottom : 6;
 
   return (
-    <View style={[styles.bar, { paddingBottom: safeBottomPadding }]}>
+    <Animated.View style={[
+      styles.bar, 
+      { 
+        height: totalBarHeightOnDevice, 
+        paddingBottom: safeBottomPadding 
+      }, 
+      animatedTabBarStyle
+    ]}>
       {tabs.map((tab) => {
         const isCurrentRoute = pathname === tab.path;
         const isSubRoute = pathname.startsWith(tab.path + "/");
@@ -67,20 +120,18 @@ function BottomTabBar() {
             }}
           >
             <View>
-              <Ionicons name={iconName as any} size={24} color={itemColor} />
-              
+              <Ionicons name={iconName as any} size={22} color={itemColor} />
               {tab.path === "/cart" && totalCartCount > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{badgeText}</Text>
                 </View>
               ) : null}
             </View>
-
             <Text style={[styles.label, { color: itemColor }]}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -104,17 +155,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.07,
     shadowRadius: 8,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   item: {
     flex: 1,
     alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 4,
-    gap: 3,
+    paddingTop: 8,
+    justifyContent: "center",
   },
   label: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 2,
   },
   badge: {
     position: "absolute",

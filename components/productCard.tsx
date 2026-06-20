@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   textContent: {
     paddingHorizontal: 8,
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
   imageWrapper: {
     width: 130,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 5,
     gap: 6,
   },
   priceBadge: {
@@ -288,14 +288,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#212121',
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: 3,
     lineHeight: 16,
-    height: 32,
   },
   weightText: {
     fontSize: 11,
     color: '#757575',
-    marginTop: 2,
+    marginTop: 1,
   },
   notifyButton: {
   position: 'absolute',
