@@ -1,12 +1,16 @@
 import React, { useState, useCallback } from "react";
 import { FlatList, View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from "react-native";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import { auth, db } from "../../../firebase";
 import AddressCard from "./addressCard";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { setSelectedAddress } from "../../redux/addressSlice";
+import { RootState } from "../../redux/store";
+import { useSinglePress } from "../../../hooks/useSinglePress";
 
 interface Address {
   id: string;
@@ -24,14 +28,25 @@ const AddressList = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const dispatch = useDispatch();
   const { bottom } = useSafeAreaInsets();
+  const selectedAddressId = useSelector((state: RootState) => state.address.selected?.id);
 
   const fetchAddresses = async () => {
     try {
       const user = auth.currentUser;
       if (!user) return;
       const snapshot = await getDocs(collection(db, "users", user.uid, "addresses"));
-      setAddresses(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Address[]);
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Address[];
+      setAddresses(data);
+
+      // Auto-select default address if nothing is selected yet
+      if (!selectedAddressId) {
+        const def = data.find((a) => a.isDefault) ?? data[0] ?? null;
+        if (def) {
+          dispatch(setSelectedAddress({ id: def.id, label: def.type, address: def.fullAddress }));
+        }
+      }
     } catch (error) {
       console.log("Address fetch error:", error);
     } finally {
@@ -41,11 +56,28 @@ const AddressList = () => {
 
   useFocusEffect(useCallback(() => { fetchAddresses(); }, []));
 
+  const handleDelete = (id: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    if (selectedAddressId === id) {
+      dispatch(setSelectedAddress(null));
+    }
+    deleteDoc(doc(db, "users", user.uid, "addresses", id)).catch(console.error);
+  };
+
+  const handleSelect = useSinglePress((item: Address) => {
+    dispatch(setSelectedAddress({ id: item.id, label: item.type, address: item.fullAddress }));
+    router.back();
+  });
+  const goBack = useSinglePress(() => router.back());
+  const goToAddressAdd = useSinglePress(() => router.push("/(tabs)/address/addressAdd" as any));
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+        <TouchableOpacity onPress={goBack} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Addresses</Text>
@@ -61,12 +93,15 @@ const AddressList = () => {
           renderItem={({ item }) => (
             <AddressCard
               item={item}
+              isSelected={selectedAddressId === item.id}
+              onSelect={() => handleSelect(item)}
               onEdit={() =>
                 router.push({
                   pathname: "/(tabs)/address/addressEdit" as any,
                   params: { addressId: item.id },
                 })
               }
+              onDelete={handleDelete}
             />
           )}
           ListEmptyComponent={
@@ -79,7 +114,7 @@ const AddressList = () => {
           ListFooterComponent={
             <TouchableOpacity
               style={styles.addBtn}
-              onPress={() => router.push("/(tabs)/address/addressAdd" as any)}
+              onPress={goToAddressAdd}
             >
               <AntDesign name="plus" size={18} color="#ff2d7a" />
               <Text style={styles.addBtnText}>Add New Address</Text>

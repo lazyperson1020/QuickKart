@@ -8,6 +8,7 @@ import { RootState } from '../app/redux/store';
 import Toast from 'react-native-toast-message';
 import { auth } from '../firebase';
 import { addToWishlistFirestore, removeFromWishlistFirestore } from '../app/utils/wishlistFirestore';
+import { useSinglePress } from '../hooks/useSinglePress';
 export interface GroceryProduct {
   id: string;
   sku?: string;
@@ -19,13 +20,14 @@ export interface GroceryProduct {
   position?: number;
   stock: number;
   category?: string;
+  subCategory?: string;
   brand?: string;
   tags?: string[];
   inStock?: boolean;
   description: string;
 }
 
-export default function ProductCard({ product }: { product: GroceryProduct }) {
+export default function ProductCard({ product, cardWidth = 130 }: { product: GroceryProduct; cardWidth?: number }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: RootState) => state.cart);
   const wishlist = useSelector((state: RootState) => state.wishlist);
@@ -33,6 +35,27 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
   const cartItem = cart.find((item) => item.id === product.id);
   const isWishlisted = wishlist.some((item) => item.id === product.id);
   const savings = (product.originalPrice || 0) - (product.price || 0);
+
+  const handleWishlist = useSinglePress(() => {
+    dispatch(toggleWishlist(product));
+    const user = auth.currentUser;
+    if (user) {
+      if (isWishlisted) {
+        removeFromWishlistFirestore(user.uid, product.id).catch(console.error);
+      } else {
+        addToWishlistFirestore(user.uid, product).catch(console.error);
+      }
+    }
+  });
+  const handleAdd = useSinglePress(() => {
+    if (product.stock <= 0) { showStockToast(); return; }
+    dispatch(addProduct(product));
+  });
+  const handleDecrement = useSinglePress(() => dispatch(decrementQuantity(product)), 300);
+  const handleIncrement = useSinglePress(() => {
+    if (cartItem && cartItem.quantity >= product.stock) { showStockToast(); return; }
+    dispatch(incrementQuantity(product));
+  }, 300);
 
   const showStockToast = () => {
   Toast.show({
@@ -46,10 +69,10 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
 };
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, { width: cardWidth }]}>
 
       {/* IMAGE + floating controls */}
-      <View style={styles.imageWrapper}>
+      <View style={[styles.imageWrapper, { width: cardWidth, height: cardWidth }]}>
 
           {product.stock <= 0 && (
             <View style={styles.soldOutBadge}>
@@ -73,17 +96,7 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         {/* Wishlist heart — top-right */}
         <TouchableOpacity
           style={styles.heartButton}
-          onPress={() => {
-            dispatch(toggleWishlist(product));
-            const user = auth.currentUser;
-            if (user) {
-              if (isWishlisted) {
-                removeFromWishlistFirestore(user.uid, product.id).catch(console.error);
-              } else {
-                addToWishlistFirestore(user.uid, product).catch(console.error);
-              }
-            }
-          }}
+          onPress={handleWishlist}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -97,7 +110,7 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         {cartItem ? (
           <View style={styles.quantityContainer}>
             <TouchableOpacity
-              onPress={() => dispatch(decrementQuantity(product))}
+              onPress={handleDecrement}
               hitSlop={8}
             >
               <AntDesign name="minus" size={14} color="#e91e63" />
@@ -108,14 +121,7 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
             </Text>
 
             <TouchableOpacity
-              onPress={() => {
-                if (cartItem.quantity >= product.stock) {
-                  showStockToast();
-                  return;
-                }
-
-                dispatch(incrementQuantity(product));
-              }}
+              onPress={handleIncrement}
               hitSlop={8}
             >
               <AntDesign name="plus" size={14} color="#e91e63" />
@@ -139,14 +145,7 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
         ) : (
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => {
-              if (product.stock <= 0) {
-                showStockToast();
-                return;
-              }
-
-              dispatch(addProduct(product));
-            }}
+            onPress={handleAdd}
             activeOpacity={0.8}
           >
             <Text style={styles.addButtonText}>

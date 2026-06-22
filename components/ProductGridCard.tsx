@@ -6,6 +6,7 @@ import { addProduct, incrementQuantity, decrementQuantity } from '../app/redux/c
 import { RootState } from '../app/redux/store';
 import { GroceryProduct } from './productCard';
 import Toast from 'react-native-toast-message';
+import { useSinglePress } from '../hooks/useSinglePress';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px outer padding each side + 8px gap
@@ -13,11 +14,13 @@ const CARD_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px outer padding each side + 8p
 interface ProductGridCardProps {
   product: GroceryProduct;
   onPress?: () => void;
+  cardWidth?: number;
 }
 
-export default function ProductGridCard({ product, onPress }: ProductGridCardProps) {
+export default function ProductGridCard({ product, onPress, cardWidth: widthProp }: ProductGridCardProps) {
   const dispatch = useDispatch();
   const cart = useSelector((state: RootState) => state.cart);
+  const resolvedWidth = widthProp ?? CARD_WIDTH;
 
   const cartItem = cart.find((item) => item.id === product.id);
   const savings = (product.originalPrice || 0) - (product.price || 0);
@@ -33,10 +36,17 @@ export default function ProductGridCard({ product, onPress }: ProductGridCardPro
     });
   };
 
+  const handleAdd = useSinglePress(() => dispatch(addProduct(product)));
+  const handleDecrement = useSinglePress(() => dispatch(decrementQuantity(product)), 300);
+  const handleIncrement = useSinglePress(() => {
+    if (cartItem && cartItem.quantity >= product.stock) { showStockToast(); return; }
+    dispatch(incrementQuantity(product));
+  }, 300);
+
   return (
-    <TouchableOpacity style={styles.cardContainer} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity style={[styles.cardContainer, { width: resolvedWidth }]} onPress={onPress} activeOpacity={0.9}>
       {/* Image + ADD/qty overlay */}
-      <View style={styles.imageWrapper}>
+      <View style={[styles.imageWrapper, { width: resolvedWidth, height: Math.round(resolvedWidth * 0.76) }]}>
         {isOutOfStock && (
           <View style={styles.soldOutBadge}>
             <Text style={styles.soldOutText}>Sold Out</Text>
@@ -50,20 +60,14 @@ export default function ProductGridCard({ product, onPress }: ProductGridCardPro
         {cartItem ? (
           <View style={styles.quantityContainer}>
             <TouchableOpacity
-              onPress={() => dispatch(decrementQuantity(product))}
+              onPress={handleDecrement}
               hitSlop={8}
             >
               <AntDesign name="minus" size={14} color="#e91e63" />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{cartItem.quantity}</Text>
             <TouchableOpacity
-              onPress={() => {
-                if (cartItem.quantity >= product.stock) {
-                  showStockToast();
-                  return;
-                }
-                dispatch(incrementQuantity(product));
-              }}
+              onPress={handleIncrement}
               hitSlop={8}
             >
               <AntDesign name="plus" size={14} color="#e91e63" />
@@ -77,7 +81,7 @@ export default function ProductGridCard({ product, onPress }: ProductGridCardPro
         ) : (
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => dispatch(addProduct(product))}
+            onPress={handleAdd}
             activeOpacity={0.8}
           >
             <Text style={styles.addButtonText}>ADD</Text>
@@ -109,14 +113,11 @@ export default function ProductGridCard({ product, onPress }: ProductGridCardPro
 
 const styles = StyleSheet.create({
   cardContainer: {
-    width: CARD_WIDTH,
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 10,
   },
   imageWrapper: {
-    width: CARD_WIDTH,
-    height: Math.round(CARD_WIDTH * 0.76),
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',

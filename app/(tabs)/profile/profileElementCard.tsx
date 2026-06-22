@@ -5,6 +5,7 @@ import {
   Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSinglePress } from "../../../hooks/useSinglePress";
 
 interface Props {
   title: string;
@@ -19,9 +20,10 @@ const ProfileElementCard = ({
   onPress,
   subtitle,
 }: Props) => {
+  const handlePress = useSinglePress(onPress);
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       style={{
         flexDirection: "row",
         alignItems: "center",

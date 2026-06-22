@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { auth, db } from "../../firebase";
 import CategoryRecycler from "../../components/CategoryRecycler";
@@ -24,12 +25,13 @@ import BannerRail from './banners';
 import ProductRail from '../../components/ProductRail';
 import SeeAllButton from "../../components/SeeAllButton";
 import BottomSheet from "../../components/BottomSheet";
+import { useSinglePress } from "../../hooks/useSinglePress";
 
 // Type-safe layout variables
 import { globalLayoutScrollY, globalBottomBarVisible, TAB_BAR_RAW_HEIGHT } from "./_layout";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 32 - 12) / 2; 
+const { width, height: screenHeight } = Dimensions.get("window");
+const CARD_WIDTH_3 = Math.floor((width - 32) / 3) - 5;
 
 const METADATA_HEIGHT = 56;  
 const SEARCH_BAR_HEIGHT = 54; 
@@ -46,11 +48,17 @@ interface GroupedProducts {
 }
 
 export default function Home() {
-  const { errorMsg, address } = useLocation();
+  const { address: gpsAddress, permissionStatus, openSettings } = useLocation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+
   const cart = useSelector((state: RootState) => state.cart);
+  const reduxSelectedAddress = useSelector((state: RootState) => state.address.selected);
+
+  const displayAddress = reduxSelectedAddress
+    ? `${reduxSelectedAddress.label} • ${reduxSelectedAddress.address}`
+    : permissionStatus === 'denied' ? "Location unavailable" : gpsAddress;
+  const showEnableButton = !reduxSelectedAddress && (permissionStatus === 'denied' || permissionStatus === 'undetermined');
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -137,7 +145,11 @@ export default function Home() {
     return groups;
   }, [products]);
 
-  const handleProductPress = (product: GroceryProduct) => router.push({ pathname: "/(tabs)/productDetails", params: { productJson: JSON.stringify(product) } });
+  const handleProductPress = useSinglePress((product: GroceryProduct) => router.push({ pathname: "/(tabs)/productDetails", params: { productJson: JSON.stringify(product) } }));
+  const goToAddressList = useSinglePress(() => router.push("/(tabs)/address/addressList" as any));
+  const goToProfile = useSinglePress(() => router.push("/(tabs)/profile/profilePage" as any));
+  const goToSearch = useSinglePress(() => router.push("/(tabs)/search/results" as any));
+  const goToCart = useSinglePress(() => router.push('/(tabs)/cart' as any));
 
   /* ==================== ADVANCED DIRECTIONAL NAVIGATION LOGIC ==================== */
   const scrollHandler = useAnimatedScrollHandler({
@@ -248,20 +260,36 @@ export default function Home() {
       <Animated.View style={[{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", overflow: "hidden" }, useMetadataCollapseStyle]}>
         <View style={{ flex: 1, paddingRight: 10, justifyContent: "center", height: METADATA_HEIGHT }}>
           <Text style={{ fontSize: 22, fontWeight: "900", color: "#3c1053", letterSpacing: -0.5 }}>⚡ 7 minutes</Text>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/address/addressList" as any)} activeOpacity={0.7}>
-            <Text numberOfLines={1} style={{ color: "#4B5563", fontSize: 13, fontWeight: "500", marginTop: 2 }}>
-              {errorMsg ? errorMsg : `Home • ${address}`}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+            <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, maxWidth: 160, color: "#4B5563", fontSize: 13 }}>
+                {reduxSelectedAddress ? (
+                  <>
+                    <Text style={{ fontWeight: "700" }}>{reduxSelectedAddress.label}</Text>
+                    {` - ${reduxSelectedAddress.address}`}
+                  </>
+                ) : (
+                  displayAddress
+                )}
+              </Text>
+              <Ionicons name="chevron-down" size={13} color="#6B7280" style={{ marginLeft: 3 }} />
+            </TouchableOpacity>
+            {showEnableButton && (
+              <TouchableOpacity onPress={openSettings} activeOpacity={0.75} style={{ flexDirection: "row", alignItems: "center", marginLeft: 8, backgroundColor: "#F3E8FF", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D8B4FE" }}>
+                <Ionicons name="settings-outline" size={11} color="#7C3AED" style={{ marginRight: 3 }} />
+                <Text style={{ color: "#7C3AED", fontSize: 11, fontWeight: "700" }}>Enable</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/profile/profilePage" as any)} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>
-          <Text style={{ fontSize: 16 }}>👤</Text>
+        <TouchableOpacity onPress={goToProfile} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>
+          <Ionicons name="person-circle" size={32}  />
         </TouchableOpacity>
       </Animated.View>
 
       {/* ROW 2: Search Input Field */}
       <View style={{ height: SEARCH_BAR_HEIGHT, justifyContent: "center" }}>
-        <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={() => router.push("/search")} activeOpacity={0.9}>
+        <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={goToSearch} activeOpacity={0.9}>
           <Text style={{ fontSize: 15, color: "#6B7280", marginRight: 8 }}>🔍</Text>
           <Text style={{ color: "#9CA3AF", fontSize: 14, fontWeight: "500" }}>Search for milk, fruits, veggies...</Text>
         </TouchableOpacity>
@@ -272,30 +300,38 @@ export default function Home() {
     </View>
 
       {/* FLOATING TOP CONTAINER STACK PANEL */}
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: "#fff", paddingTop: insets.top }}>
+      {/* <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: "#fff", paddingTop: insets.top }}>
         <Animated.View style={[{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", overflow: "hidden" }, useMetadataCollapseStyle]}>
           <View style={{ flex: 1, paddingRight: 10, justifyContent: "center", height: METADATA_HEIGHT }}>
             <Text style={{ fontSize: 22, fontWeight: "900", color: "#000", letterSpacing: -0.5 }}>⚡ 7 minutes</Text>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/address/addressList" as any)} activeOpacity={0.7}>
-              <Text numberOfLines={1} style={{ color: "#4B5563", fontSize: 13, fontWeight: "500", marginTop: 2 }}>
-                {errorMsg ? errorMsg : `Home • ${address}`}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+              <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={{ color: "#4B5563", fontSize: 13, fontWeight: "500" }}>
+                  {displayAddress}
+                </Text>
+              </TouchableOpacity>
+              {showEnableButton && (
+                <TouchableOpacity onPress={openSettings} activeOpacity={0.75} style={{ flexDirection: "row", alignItems: "center", marginLeft: 8, backgroundColor: "#F3E8FF", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D8B4FE" }}>
+                  <Ionicons name="settings-outline" size={11} color="#7C3AED" style={{ marginRight: 3 }} />
+                  <Text style={{ color: "#7C3AED", fontSize: 11, fontWeight: "700" }}>Enable</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/profile/profilePage" as any)} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>
-            <Text style={{ fontSize: 16 }}>👤</Text>
+          <TouchableOpacity onPress={goToProfile} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>
+            <Ionicons name="person-circle" size={32} color="#000000" />
           </TouchableOpacity>
         </Animated.View>
 
         <View style={{ height: SEARCH_BAR_HEIGHT, justifyContent: "center" }}>
-          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={() => router.push("/search")} activeOpacity={0.9}>
+          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={goToSearch} activeOpacity={0.9}>
             <Text style={{ fontSize: 15, color: "#6B7280", marginRight: 8 }}>🔍</Text>
             <Text style={{ color: "#9CA3AF", fontSize: 14, fontWeight: "500" }}>Search for milk, fruits, veggies...</Text>
           </TouchableOpacity>
         </View>
         
         <CategoryRecycler selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} scrollY={globalLayoutScrollY} />
-      </View>
+      </View> */}
 
       {/* ACTION CHIP OVERLAY */}
       <Animated.View style={[{ position: "absolute", top: insets.top + SEARCH_BAR_HEIGHT + 60, alignSelf: "center", zIndex: 20 }, useBackToTopAnimation]}>
@@ -319,7 +355,7 @@ export default function Home() {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ 
           paddingTop: topBarStaticPadding + 16, 
-          paddingBottom: 180,
+          paddingBottom: 0,
           backgroundColor: "#fff" 
         }}
       >
@@ -362,9 +398,9 @@ export default function Home() {
                 </View>
 
                 <View style={{ flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, justifyContent: "space-between" }}>
-                  {categoryGroupedSections[categoryName].slice(0, 4).map((product) => (
-                    <TouchableOpacity key={product.id} style={{ width: CARD_WIDTH, marginBottom: 8 }} onPress={() => handleProductPress(product)} activeOpacity={0.8}>
-                      <ProductCard product={product} />
+                  {categoryGroupedSections[categoryName].slice(0, 6).map((product) => (
+                    <TouchableOpacity key={product.id} style={{ width: CARD_WIDTH_3, marginBottom: 10 }} onPress={() => handleProductPress(product)} activeOpacity={0.8}>
+                      <ProductCard product={product} cardWidth={CARD_WIDTH_3} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -395,6 +431,13 @@ export default function Home() {
             ))}
           </View>
         )}
+
+        {/* Footer image */}
+        <Image
+          source={require('../../assets/footerImages/homefooter.png')}
+          style={{ width, height: screenHeight * 0.55, marginTop: 8 }}
+          resizeMode="cover"
+        />
       </Animated.ScrollView>
 
       {/* ==================== FIXED MOBILE SAFE OFFERS + CART PANEL DECK ==================== */}
@@ -452,7 +495,7 @@ export default function Home() {
               shadowOpacity: 0.4, shadowRadius: 6, elevation: 6 },
           ]}>
             <TouchableOpacity
-              onPress={() => router.push('/(tabs)/cart')}
+              onPress={goToCart}
               style={{ flex: 1, backgroundColor: '#e91e63', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', paddingHorizontal: 10, gap: 8 }}
               activeOpacity={0.9}
             >

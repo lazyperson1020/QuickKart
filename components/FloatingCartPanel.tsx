@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { useSinglePress } from '../hooks/useSinglePress';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -49,6 +50,7 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const goToCart = useSinglePress(() => router.push('/(tabs)/cart'));
   const [showOffers, setShowOffers] = useState(false);
 
   const cartBarProgress = useSharedValue(cartCount > 0 ? 1 : 0);
@@ -187,7 +189,7 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
             },
           ]}>
             <TouchableOpacity
-              onPress={() => router.push('/(tabs)/cart')}
+              onPress={goToCart}
               style={{
                 flex: 1,
                 backgroundColor: '#e91e63',

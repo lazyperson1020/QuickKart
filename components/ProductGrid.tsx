@@ -9,6 +9,7 @@ import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import ProductGridCard from './ProductGridCard';
 import { GroceryProduct } from './productCard';
+import { useSinglePress } from '../hooks/useSinglePress';
 
 interface ProductGridProps {
   products: GroceryProduct[];
@@ -33,14 +34,16 @@ export default function ProductGrid({
 }: ProductGridProps) {
   const router = useRouter();
 
-  const handlePress = useCallback(
-    (product: GroceryProduct) => {
-      router.push({
-        pathname: '/(tabs)/productDetails',
-        params: { productJson: JSON.stringify(product) },
-      });
-    },
-    [router]
+  const handlePress = useSinglePress(
+    useCallback(
+      (product: GroceryProduct) => {
+        router.push({
+          pathname: '/(tabs)/productDetails',
+          params: { productJson: JSON.stringify(product) },
+        });
+      },
+      [router]
+    )
   );
 
   const renderItem: ListRenderItem<GroceryProduct> = useCallback(

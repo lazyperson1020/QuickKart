@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
   Pressable,
@@ -87,7 +88,10 @@ export default function BottomSheet({
       animationType="none"
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior="padding"
+      >
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={closeSheet}
@@ -108,7 +112,7 @@ export default function BottomSheet({
 
           {children}
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -126,7 +130,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    overflow: "hidden",
   },
 
   handle: {

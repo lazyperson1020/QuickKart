@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, FlatList } from 'react-native';
 import ProductCard, { GroceryProduct } from './productCard';
+import { useSinglePress } from '../hooks/useSinglePress';
 
 interface ProductRailProps {
   products: GroceryProduct[];
@@ -13,6 +14,7 @@ const HEADER = () => <View style={{ width: 16 }} />;
 const FOOTER = () => <View style={{ width: 16 }} />;
 
 export default function ProductRail({ products, onProductPress, rows = 1 }: ProductRailProps) {
+  const safePress = useSinglePress(onProductPress);
   if (rows === 2) {
     const columns = products.reduce<GroceryProduct[][]>((cols, item, i) => {
       if (i % 2 === 0) cols.push([item]);
@@ -31,7 +33,7 @@ export default function ProductRail({ products, onProductPress, rows = 1 }: Prod
             {pair.map(product => (
               <TouchableOpacity
                 key={product.id}
-                onPress={() => onProductPress(product)}
+                onPress={() => safePress(product)}
                 activeOpacity={0.85}
               >
                 <ProductCard product={product} />
@@ -54,7 +56,7 @@ export default function ProductRail({ products, onProductPress, rows = 1 }: Prod
       data={products}
       keyExtractor={item => item.id}
       renderItem={({ item }) => (
-        <TouchableOpacity onPress={() => onProductPress(item)} activeOpacity={0.85}>
+        <TouchableOpacity onPress={() => safePress(item)} activeOpacity={0.85}>
           <ProductCard product={item} />
         </TouchableOpacity>
       )}

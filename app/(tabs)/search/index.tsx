@@ -1,292 +1,356 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, ActivityIndicator, StatusBar, Dimensions, Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase';
-import SearchHeader from '../../../components/SearchHeader';
 import { GroceryProduct } from '../../../components/productCard';
+import ProductGridCard from '../../../components/ProductGridCard';
+import FloatingCartPanel from '../../../components/FloatingCartPanel';
+import PriceFilterBadge from '../../../components/PriceFilterBadge';
+import { globalBottomBarVisible } from '../_layout';
 
-const RECENT_KEY = 'qk_recent_searches';
-const MAX_RECENT = 8;
-const CATEGORIES = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+const { width: SCREEN_W } = Dimensions.get('window');
+const SIDE_PAD = 12;
+const COL_GAP = 10;
+const CARD_W_2 = Math.floor((SCREEN_W - SIDE_PAD * 2 - COL_GAP) / 2);
+const BANNER_HEIGHT = 160;
+const HEADER_INNER_H = 46;
 
-export default function SearchDiscoveryScreen() {
+const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+
+const PRICE_TABS = [
+  { key: 199,  amount: 199,  label: 'Under ₹199', imageUrl: undefined },
+  { key: 299,  amount: 299,  label: 'Under ₹299', imageUrl: undefined },
+  { key: 399,  amount: 399,  label: 'Under ₹399', imageUrl: undefined },
+  { key: 499,  amount: 499,  label: 'Under ₹499', imageUrl: undefined },
+  { key: 9999, amount: 9999, label: 'All Prices', imageUrl: undefined },
+];
+
+const CATEGORY_SECTIONS: { key: string; label: string; emoji: string }[] = [
+  { key: 'Fresh',       label: 'Fresh Produce',      emoji: '🥦' },
+  { key: 'Dairy',       label: 'Dairy Products',      emoji: '🥛' },
+  { key: 'Snacks',      label: 'Snacks & Beverages',  emoji: '🍿' },
+  { key: 'Electronics', label: 'Kitchen & More',       emoji: '🏪' },
+];
+
+export default function DealsScreen() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [allProducts, setAllProducts] = useState<GroceryProduct[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const { top } = useSafeAreaInsets();
+  const [products, setProducts] = useState<GroceryProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activePrice, setActivePrice] = useState(199);
+
+  const scrollY = useSharedValue(0);
+
+  useFocusEffect(useCallback(() => {
+    globalBottomBarVisible.value = 1;
+  }, []));
 
   useEffect(() => {
-    const loadRecent = async () => {
+    (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(RECENT_KEY);
-        if (stored) setRecentSearches(JSON.parse(stored));
-      } catch {}
-    };
-    loadRecent();
-  }, []);
-
-  useEffect(() => {
-    const fetchAllProducts = async () => {
-      setLoadingProducts(true);
-      try {
+        const snaps = await Promise.all(
+          DB_CATS.map(cat => getDocs(collection(db, 'products', cat, `${cat}Collection`)))
+        );
         const items: GroceryProduct[] = [];
-        for (const cat of CATEGORIES) {
-          const snap = await getDocs(
-            collection(db, 'products', cat, `${cat}Collection`)
-          );
-          snap.forEach((doc) =>
-            items.push({ id: doc.id, ...doc.data(), category: cat } as GroceryProduct)
-          );
-        }
-        setAllProducts(items);
-      } catch {}
-      setLoadingProducts(false);
-    };
-    fetchAllProducts();
+        snaps.forEach((snap, i) =>
+          snap.forEach(doc =>
+            items.push({
+              id: doc.id,
+              ...doc.data(),
+              category: DB_CATS[i],
+              stock: Number(doc.data().stock ?? 0),
+            } as GroceryProduct)
+          )
+        );
+        setProducts(items.sort((a, b) => Number(a.position ?? 999) - Number(b.position ?? 999)));
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    })();
   }, []);
 
-  useEffect(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      setSuggestions([]);
-      return;
-    }
-    const seen = new Set<string>();
-    const results: string[] = [];
-    for (const p of allProducts) {
-      if (results.length >= 8) break;
-      if (p.name?.toLowerCase().includes(q) && !seen.has(p.name)) {
-        seen.add(p.name);
-        results.push(p.name);
-      }
-    }
-    // Also surface matching brands/categories as suggestions
-    for (const p of allProducts) {
-      if (results.length >= 8) break;
-      if (p.brand && p.brand.toLowerCase().includes(q) && !seen.has(p.brand)) {
-        seen.add(p.brand);
-        results.push(p.brand);
-      }
-    }
-    setSuggestions(results);
-  }, [query, allProducts]);
-
-  const saveAndNavigate = useCallback(
-    async (term: string) => {
-      const trimmed = term.trim();
-      if (!trimmed) return;
-      const updated = [trimmed, ...recentSearches.filter((r) => r !== trimmed)].slice(
-        0,
-        MAX_RECENT
-      );
-      setRecentSearches(updated);
-      try {
-        await SecureStore.setItemAsync(RECENT_KEY, JSON.stringify(updated));
-      } catch {}
-      router.push({
-        pathname: '/(tabs)/search/results',
-        params: { query: trimmed },
-      });
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
     },
-    [recentSearches, router]
+  });
+
+  const bannerAnimStyle = useAnimatedStyle(() => {
+    const height = interpolate(scrollY.value, [0, BANNER_HEIGHT - HEADER_INNER_H], [BANNER_HEIGHT, HEADER_INNER_H], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollY.value, [0, (BANNER_HEIGHT - HEADER_INNER_H) * 0.5], [1, 0], Extrapolation.CLAMP);
+    return { height, opacity };
+  });
+
+  const headerBgAnimStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [(BANNER_HEIGHT - HEADER_INNER_H) * 0.6, BANNER_HEIGHT - HEADER_INNER_H], [0, 1], Extrapolation.CLAMP);
+    return { opacity };
+  });
+
+  const titleAnimStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [(BANNER_HEIGHT - HEADER_INNER_H) * 0.4, BANNER_HEIGHT - HEADER_INNER_H * 0.8], [0, 1], Extrapolation.CLAMP);
+    return { opacity };
+  });
+
+  const filteredByPrice = useMemo(
+    () => products.filter(p => p.price <= activePrice),
+    [products, activePrice]
   );
 
-  const clearRecent = async () => {
-    setRecentSearches([]);
-    try {
-      await SecureStore.deleteItemAsync(RECENT_KEY);
-    } catch {}
-  };
-
-  const removeRecentItem = async (term: string) => {
-    const updated = recentSearches.filter((r) => r !== term);
-    setRecentSearches(updated);
-    try {
-      await SecureStore.setItemAsync(RECENT_KEY, JSON.stringify(updated));
-    } catch {}
-  };
-
-  const showSuggestions = query.trim().length > 0;
+  const productsByCategory = useMemo(() => {
+    const map: Record<string, GroceryProduct[]> = {};
+    CATEGORY_SECTIONS.forEach(sec => {
+      map[sec.key] = products.filter(p => p.category === sec.key && p.price <= activePrice);
+    });
+    return map;
+  }, [products, activePrice]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <SearchHeader
-        value={query}
-        onChangeText={setQuery}
-        onBack={() => router.back()}
-        onSubmit={saveAndNavigate}
-        autoFocus
-        placeholder="Search for milk, fruits..."
-      />
+    <View style={{ flex: 1, backgroundColor: '#F4F6FB' }}>
+      <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />
 
-      {showSuggestions ? (
-        /* ── Live Suggestions ── */
-        <FlatList
-          data={suggestions}
-          keyExtractor={(item) => item}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.suggestionRow} onPress={() => saveAndNavigate(item)}>
-              <Ionicons name="search-outline" size={17} color="#888" style={styles.rowIcon} />
-              <Text style={styles.suggestionText}>{item}</Text>
-              <TouchableOpacity
-                hitSlop={8}
-                onPress={() => setQuery(item)}
-                style={styles.fillIcon}
-              >
-                <Ionicons name="arrow-up-outline" size={16} color="#bbb" style={{ transform: [{ rotate: '45deg' }] }} />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            loadingProducts ? (
-              <ActivityIndicator color="#2e7d32" style={{ marginTop: 40 }} />
-            ) : (
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>No suggestions for "{query}"</Text>
-                <TouchableOpacity
-                  style={styles.searchAnyway}
-                  onPress={() => saveAndNavigate(query)}
-                >
-                  <Text style={styles.searchAnywayText}>Search anyway →</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          }
+      {/* Dynamic Collapsible Banner Layer */}
+      <Animated.View style={[{
+        position: 'absolute',
+        top: top,
+        left: 0,
+        right: 0,
+        overflow: 'hidden',
+        zIndex: 5,
+      }, bannerAnimStyle]}>
+        <Image
+          source={require('../../../assets/headerImages/dailyessentialssale.png')}
+          style={{ width: SCREEN_W, height: BANNER_HEIGHT }}
+          resizeMode="cover"
         />
-      ) : (
-        /* ── Recent Searches ── */
-        <View style={styles.recentSection}>
-          {recentSearches.length > 0 ? (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Searches</Text>
-                <TouchableOpacity onPress={clearRecent} hitSlop={8}>
-                  <Text style={styles.clearAll}>Clear all</Text>
-                </TouchableOpacity>
-              </View>
-              {recentSearches.map((term) => (
-                <View key={term} style={styles.recentRow}>
-                  <TouchableOpacity
-                    style={styles.recentLeft}
-                    onPress={() => saveAndNavigate(term)}
-                  >
-                    <Ionicons name="time-outline" size={17} color="#888" style={styles.rowIcon} />
-                    <Text style={styles.recentText}>{term}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity hitSlop={8} onPress={() => removeRecentItem(term)}>
-                    <Ionicons name="close" size={16} color="#bbb" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </>
-          ) : (
-            <View style={styles.emptyWrap}>
-              <Ionicons name="search-outline" size={40} color="#ddd" />
-              <Text style={styles.emptyText}>Start typing to search products</Text>
+      </Animated.View>
+
+      {/* Fixed Navigation Header Row */}
+      <View style={[S.header, { top: top, height: HEADER_INNER_H }]}>
+        <Animated.View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFDE7' }, headerBgAnimStyle]} />
+        
+        <TouchableOpacity onPress={() => router.back()} style={S.iconTouchTarget}>
+          <Ionicons name="arrow-back" size={22} color="#111" />
+        </TouchableOpacity>
+        
+        <Animated.Text style={[S.headerTitle, titleAnimStyle]}>Sale</Animated.Text>
+        
+        <TouchableOpacity
+          style={S.iconTouchTarget}
+          onPress={() => router.push('/(tabs)/search/results' as any)}
+        >
+          <Ionicons name="search-outline" size={22} color="#111" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Main Content View Container */}
+      <View style={{ flex: 1, marginTop: top + HEADER_INNER_H }}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#E67E22" style={{ marginTop: 40 }} />
+        ) : (
+          <Animated.ScrollView
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ 
+              paddingTop: BANNER_HEIGHT - HEADER_INNER_H, 
+              paddingBottom: 140 
+            }}
+          >
+            {/* Inline Scrollable Price Badges Container Track (Moves inline with the view list) */}
+            <View style={S.priceTabsContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ paddingHorizontal: SIDE_PAD, gap: 10, alignItems: 'center' }}
+              >
+                {PRICE_TABS.map(tab => (
+                  <PriceFilterBadge
+                    key={tab.key}
+                    amount={tab.amount}
+                    label={tab.label}
+                    imageUrl={tab.imageUrl}
+                    active={activePrice === tab.key}
+                    onPress={() => setActivePrice(tab.key)}
+                  />
+                ))}
+              </ScrollView>
             </View>
-          )}
-        </View>
-      )}
-    </SafeAreaView>
+
+            {/* Sale Picks Sections Block */}
+            {filteredByPrice.length > 0 && (
+              <View style={S.section}>
+                <View style={S.sectionHeader}>
+                  <Text style={S.sectionTitle}>🏷 Sale Picks</Text>
+                  <Text style={S.sectionCount}>{filteredByPrice.length} items</Text>
+                </View>
+
+                <View style={S.grid}>
+                  {filteredByPrice.slice(0, 6).map(item => (
+                    <ProductGridCard
+                      key={item.id}
+                      product={item}
+                      cardWidth={CARD_W_2}
+                      onPress={() =>
+                        router.push({ pathname: '/(tabs)/productDetails', params: { productJson: JSON.stringify(item) } })
+                      }
+                    />
+                  ))}
+                </View>
+
+                {filteredByPrice.length > 6 && (
+                  <TouchableOpacity style={S.seeAllBtn} activeOpacity={0.8}>
+                    <Text style={S.seeAllText}>See All</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#555" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Product Category Multi-Grids Mapping Layout */}
+            {CATEGORY_SECTIONS.map(sec => {
+              const items = productsByCategory[sec.key];
+              if (!items || items.length === 0) return null;
+              return (
+                <View key={sec.key} style={S.section}>
+                  <View style={S.sectionHeader}>
+                    <Text style={S.sectionTitle}>{sec.emoji} {sec.label}</Text>
+                    <Text style={S.sectionCount}>{items.length} items</Text>
+                  </View>
+
+                  <View style={S.grid}>
+                    {items.slice(0, 4).map(item => (
+                      <ProductGridCard
+                        key={item.id}
+                        product={item}
+                        cardWidth={CARD_W_2}
+                        onPress={() =>
+                          router.push({ pathname: '/(tabs)/productDetails', params: { productJson: JSON.stringify(item) } })
+                        }
+                      />
+                    ))}
+                  </View>
+
+                  {items.length > 4 && (
+                    <TouchableOpacity style={S.seeAllBtn} activeOpacity={0.8}>
+                      <Text style={S.seeAllText}>See All</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#555" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+
+            {filteredByPrice.length === 0 && (
+              <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                <Text style={{ fontSize: 40, marginBottom: 12 }}>🎉</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#333' }}>
+                  No products under ₹{activePrice === 9999 ? 'this range' : activePrice}
+                </Text>
+                <Text style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+                  Try a different price range
+                </Text>
+              </View>
+            )}
+          </Animated.ScrollView>
+        )}
+      </View>
+
+      <FloatingCartPanel noNavBar />
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  suggestionRow: {
+const S = StyleSheet.create({
+  header: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+  },
+  iconTouchTarget: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111',
+    textAlign: 'center',
+  },
+  priceTabsContainer: {
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: '#F0F2F5',
+    paddingVertical: 12,
   },
-  rowIcon: {
-    marginRight: 14,
-  },
-  suggestionText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#222',
-  },
-  fillIcon: {
-    padding: 4,
-  },
-  recentSection: {
-    flex: 1,
-    paddingTop: 8,
+  section: {
+    backgroundColor: '#FFFFFF',
+    marginTop: 8,
+    paddingVertical: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: SIDE_PAD,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  clearAll: {
-    fontSize: 13,
-    color: '#e91e63',
-    fontWeight: '600',
+  sectionCount: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '500',
   },
-  recentRow: {
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SIDE_PAD,
+    gap: COL_GAP,
+  },
+  seeAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    justifyContent: 'center',
+    marginHorizontal: SIDE_PAD,
+    marginTop: 12,
+    paddingVertical: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    gap: 4,
   },
-  recentLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recentText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  emptyWrap: {
-    alignItems: 'center',
-    paddingTop: 60,
-    gap: 12,
-  },
-  emptyText: {
+  seeAllText: {
     fontSize: 14,
-    color: '#aaa',
-  },
-  searchAnyway: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-  },
-  searchAnywayText: {
-    color: '#e91e63',
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    color: '#555',
   },
 });

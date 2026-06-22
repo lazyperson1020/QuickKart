@@ -400,14 +400,14 @@
 //     fontSize: 15,
 //   },
 // });
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  TextInput,
+  PanResponder,
 } from 'react-native';
 import BottomSheet from './BottomSheet';
 
@@ -510,19 +510,11 @@ export default function ProductFilterSheet({
       case 'price':
         return (
           <View style={styles.paneContent}>
-            <Text style={styles.paneSectionHeading}>Select price range</Text>
-            <View style={styles.priceInputWrap}>
-              <Text style={styles.currencySymbol}>₹</Text>
-              <TextInput
-                style={styles.priceInput}
-                value={priceInput}
-                onChangeText={setPriceInput}
-                placeholder="Maximum Price"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                returnKeyType="done"
-              />
-            </View>
+            <Text style={styles.paneSectionHeading}>Select max price</Text>
+            <PriceSlider
+              value={priceInput ? Number(priceInput) : 0}
+              onChange={(v) => setPriceInput(v > 0 ? String(v) : '')}
+            />
           </View>
         );
 
@@ -628,6 +620,72 @@ export default function ProductFilterSheet({
         </TouchableOpacity>
       </View>
     </BottomSheet>
+  );
+}
+
+const MAX_PRICE = 1000;
+
+function PriceSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const trackRef = useRef<View>(null);
+  const trackWidthRef = useRef(0);
+  const trackPageXRef = useRef(0);
+  const [trackW, setTrackW] = useState(0);
+
+  const progress = trackW > 0 ? Math.max(0, Math.min(value, MAX_PRICE)) / MAX_PRICE : 0;
+
+  const valueFromAbsX = (absX: number) => {
+    const rel = Math.max(0, Math.min(absX - trackPageXRef.current, trackWidthRef.current));
+    return Math.round((rel / trackWidthRef.current) * MAX_PRICE);
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (_e, gs) => {
+        if (trackWidthRef.current > 0) onChange(valueFromAbsX(gs.x0));
+      },
+      onPanResponderMove: (_e, gs) => {
+        if (trackWidthRef.current > 0) onChange(valueFromAbsX(gs.moveX));
+      },
+    })
+  ).current;
+
+  const thumbPos = progress * trackW;
+
+  return (
+    <View style={{ paddingTop: 16, paddingBottom: 8 }}>
+      <Text style={{ fontSize: 24, fontWeight: '800', color: '#E91E63', textAlign: 'center', marginBottom: 24 }}>
+        ₹{value || 0}
+      </Text>
+
+      <View
+        ref={trackRef}
+        style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginHorizontal: 8 }}
+        onLayout={() => {
+          trackRef.current?.measure((_x, _y, w, _h, pageX) => {
+            trackWidthRef.current = w;
+            trackPageXRef.current = pageX;
+            setTrackW(w);
+          });
+        }}
+        {...panResponder.panHandlers}
+      >
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: thumbPos, backgroundColor: '#E91E63', borderRadius: 2 }} />
+        <View style={{
+          position: 'absolute', top: -10, left: thumbPos - 12,
+          width: 24, height: 24, borderRadius: 12,
+          backgroundColor: '#E91E63',
+          elevation: 4,
+          shadowColor: '#E91E63', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4,
+        }} />
+      </View>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 8, marginTop: 14 }}>
+        <Text style={{ fontSize: 11, color: '#999' }}>₹0</Text>
+        <Text style={{ fontSize: 11, color: '#999' }}>₹{MAX_PRICE}</Text>
+      </View>
+    </View>
   );
 }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSinglePress } from '../hooks/useSinglePress';
 
 interface SeeAllButtonProps {
   category: string;
@@ -10,17 +11,18 @@ interface SeeAllButtonProps {
 
 export default function SeeAllButton({ category, categoryTitle }: SeeAllButtonProps) {
   const router = useRouter();
+  const handlePress = useSinglePress(() =>
+    router.push({
+      pathname: '/(tabs)/allProducts/categoryDetail',
+      params: { category, categoryTitle },
+    } as any)
+  );
 
   return (
     <TouchableOpacity
       style={styles.button}
       activeOpacity={0.7}
-      onPress={() =>
-        router.push({
-          pathname: '/(tabs)/allProducts',
-          params: { category, categoryTitle },
-        } as any)
-      }
+      onPress={handlePress}
     >
       <Text style={styles.label}>See all</Text>
       <Ionicons name="chevron-forward" size={16} color="#111" />

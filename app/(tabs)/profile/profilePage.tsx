@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View, Text, ScrollView, TouchableOpacity, Alert,
+  ActivityIndicator, StyleSheet, TextInput,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -7,6 +10,10 @@ import { signOut } from "firebase/auth";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
 import ProfileElementCard from "./profileElementCard";
+import BottomSheet from "../../../components/BottomSheet";
+
+const PURPLE = "#7E57C2";
+const PINK = "#E91E8C";
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -14,6 +21,8 @@ const ProfilePage = () => {
   const [contact, setContact] = useState("");
   const [loading, setLoading] = useState(true);
   const [addressCount, setAddressCount] = useState(0);
+  const [showSuggestSheet, setShowSuggestSheet] = useState(false);
+  const [suggestText, setSuggestText] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,9 +58,16 @@ const ProfilePage = () => {
     ]);
   };
 
+  const handleSendSuggestion = () => {
+    if (!suggestText.trim()) return;
+    Alert.alert("Thank you!", "Your suggestion has been received.");
+    setSuggestText("");
+    setShowSuggestSheet(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F0F0F5" }}>
-      {/* Sticky header — outside ScrollView */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.canGoBack() && router.back()} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
@@ -64,11 +80,11 @@ const ProfilePage = () => {
         {/* User info */}
         <View style={styles.userRow}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={36} color="#7E57C2" />
+            <Ionicons name="person" size={36} color={PURPLE} />
           </View>
           <View style={{ marginLeft: 14 }}>
             {loading ? (
-              <ActivityIndicator color="#7E57C2" />
+              <ActivityIndicator color={PURPLE} />
             ) : (
               <>
                 <Text style={styles.userName}>{name}</Text>
@@ -80,33 +96,59 @@ const ProfilePage = () => {
 
         {/* Quick actions */}
         <View style={styles.quickRow}>
-          <QuickAction icon="bag-outline" label={"Your\nOrders"} onPress={() => router.push("/(tabs)/orders")} />
-          <QuickAction icon="chatbubble-ellipses-outline" label={"Help &\nSupport"} onPress={() => Alert.alert("Help & Support", "Coming soon!")} />
+          <QuickAction icon="bag-outline" label={"Your\nOrders"} onPress={() => router.push("/(tabs)/orders/previousOrders" as any)} />
+          <QuickAction icon="chatbubble-ellipses-outline" label={"Help &\nSupport"} onPress={() => router.push("/profile/helpSupport" as any)} />
           <QuickAction icon="heart-outline" label={"Your\nWishlist"} onPress={() => router.push("/profile/wishlistPage")} />
         </View>
 
+        {/*  Cash & Gift Card */}
+        {/* <View style={styles.cashCard}>
+          <TouchableOpacity style={styles.cashTop} activeOpacity={0.7}>
+            <View style={styles.cashIconWrap}>
+              <Ionicons name="wallet" size={18} color={PURPLE} />
+            </View>
+            <Text style={styles.cashTitle}>Zepto Cash & Gift Card</Text>
+            <Ionicons name="chevron-forward" size={16} color={PURPLE} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+          <View style={styles.cashDivider} />
+          <View style={styles.cashBottom}>
+            <Text style={styles.cashBalance}>
+              Available Balance{"  "}
+              <Text style={{ fontWeight: "700", color: "#111" }}>₹0</Text>
+            </Text>
+            <TouchableOpacity style={styles.addBalanceBtn}>
+              <Text style={styles.addBalanceText}>Add Balance</Text>
+            </TouchableOpacity>
+          </View>
+        </View> */}
 
         {/* Your Information */}
         <Text style={styles.sectionLabel}>Your Information</Text>
         <View style={styles.listCard}>
           <ProfileElementCard title="Your Refunds" icon="cash-outline" onPress={() => router.push("/profile/refundsPage")} />
           <ProfileElementCard title="Your Wishlist" icon="heart-outline" onPress={() => router.push("/profile/wishlistPage")} />
-          <ProfileElementCard title="Help & Support" icon="chatbubble-ellipses-outline" onPress={() => Alert.alert("Help & Support", "Coming soon!")} />
+          <ProfileElementCard title="E-Gift Cards" icon="card-outline" onPress={() => Alert.alert("E-Gift Cards", "Coming soon!")} />
+          <ProfileElementCard title="Help & Support" icon="chatbubble-ellipses-outline" onPress={() => router.push("/profile/helpSupport" as any)} />
+        </View>
+
+        {/* Account */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Account</Text>
+        <View style={styles.listCard}>
           <ProfileElementCard
             title="Saved Addresses"
             icon="location-outline"
             subtitle={`${addressCount} Address${addressCount !== 1 ? "es" : ""}`}
             onPress={() => router.push("/address/addressList")}
           />
-          <ProfileElementCard title="Profile" icon="person-circle-outline" onPress={() => router.push("/profile/profileEditPage" as any)} />
-          <ProfileElementCard title="Rewards" icon="gift-outline" onPress={() => Alert.alert("Rewards", "Coming soon!")} />
-          <ProfileElementCard title="Payment Management" icon="card-outline" onPress={() => Alert.alert("Payment Management", "Coming soon!")} />
+          <ProfileElementCard title="Edit Profile" icon="person-circle-outline" onPress={() => router.push("/profile/profileEditPage" as any)} />
+          <ProfileElementCard title="Manage Payments" icon="card-outline" onPress={() => router.push("/profile/managePayments" as any)} />
+          <ProfileElementCard title="Rewards" icon="gift-outline" onPress={() => router.push("/profile/rewards" as any)} />
         </View>
 
-        {/* Other Information */}
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Other Information</Text>
+        {/* Other */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Other</Text>
         <View style={styles.listCard}>
-          <ProfileElementCard title="Suggest Products" icon="star-outline" onPress={() => Alert.alert("Suggest Products", "Coming soon!")} />
+          <ProfileElementCard title="Suggest Products" icon="star-outline" onPress={() => setShowSuggestSheet(true)} />
           <ProfileElementCard title="Policies" icon="document-text-outline" onPress={() => router.push("/profile/policyPage")} />
         </View>
 
@@ -118,6 +160,48 @@ const ProfilePage = () => {
           <Text style={{ color: "#AAA", fontSize: 12 }}>QuickKart v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Suggest Products Bottom Sheet */}
+      <BottomSheet
+        visible={showSuggestSheet}
+        onClose={() => setShowSuggestSheet(false)}
+        height={460}
+      >
+        <View style={styles.sheetHeader}>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.sheetClose} onPress={() => setShowSuggestSheet(false)}>
+            <Ionicons name="close" size={20} color="#555" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sheetTitle}>Suggest Products</Text>
+        <Text style={styles.sheetSub}>
+          Didn't find what you are looking for? Please suggest the products
+        </Text>
+
+        <TextInput
+          style={styles.sheetInput}
+          placeholder="Enter the name of the products you would like to see on Zepto."
+          placeholderTextColor="#B0A8C8"
+          multiline
+          textAlignVertical="top"
+          value={suggestText}
+          onChangeText={setSuggestText}
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.sendBtn,
+            { backgroundColor: suggestText.trim() ? PINK : "#F9D0E5" },
+          ]}
+          activeOpacity={suggestText.trim() ? 0.8 : 1}
+          onPress={handleSendSuggestion}
+        >
+          <Text style={[styles.sendBtnText, { color: suggestText.trim() ? "#fff" : "#E8A0C0" }]}>
+            Send
+          </Text>
+        </TouchableOpacity>
+      </BottomSheet>
     </SafeAreaView>
   );
 };
@@ -155,28 +239,49 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 1,
   },
   quickLabel: { fontSize: 13, fontWeight: "500", textAlign: "center", color: "#111" },
-  cashCard: { backgroundColor: "#EDE7FF", marginHorizontal: 15, borderRadius: 16, padding: 16, marginBottom: 14 },
-  cashTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
-  cashIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: "#D9CEFF", alignItems: "center", justifyContent: "center" },
-  cashTitle: { fontSize: 15, fontWeight: "600", color: "#3D008A" },
+
+  cashCard: {
+    backgroundColor: "#EDE7FF", marginHorizontal: 15, borderRadius: 16,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, marginBottom: 18,
+  },
+  cashTop: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cashIconWrap: { width: 34, height: 34, borderRadius: 9, backgroundColor: "#D9CEFF", alignItems: "center", justifyContent: "center" },
+  cashTitle: { fontSize: 15, fontWeight: "600", color: "#3D008A", flex: 1 },
+  cashDivider: { height: 1, backgroundColor: "#D8CFFF", marginVertical: 12 },
   cashBottom: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cashBalance: { fontSize: 14, color: "#555" },
-  addBalanceBtn: { backgroundColor: "#fff", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  addBalanceText: { fontWeight: "600", fontSize: 13, color: "#111" },
-  updateRow: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "#F0F0F5", marginHorizontal: 15, marginBottom: 18,
-    paddingVertical: 12,
+  addBalanceBtn: {
+    backgroundColor: "#fff", borderRadius: 10, borderWidth: 1, borderColor: "#CCC",
+    paddingHorizontal: 14, paddingVertical: 7,
   },
-  updateIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#E8E8E8", alignItems: "center", justifyContent: "center" },
-  updateTitle: { fontSize: 14, fontWeight: "700", color: "#111" },
-  updateSub: { fontSize: 12, color: "#777", marginTop: 2 },
-  newBadge: { backgroundColor: "#4CAF50", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  addBalanceText: { fontWeight: "600", fontSize: 13, color: "#111" },
+
   sectionLabel: { fontSize: 16, fontWeight: "700", marginHorizontal: 20, marginBottom: 10 },
   listCard: { backgroundColor: "#fff", marginHorizontal: 15, borderRadius: 16, paddingHorizontal: 15 },
   logoutBtn: { backgroundColor: "#fff", marginHorizontal: 15, marginTop: 16, borderRadius: 16, padding: 18, alignItems: "center" },
   logoutText: { fontSize: 16, fontWeight: "600", color: "#111" },
+
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  sheetClose: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "#F0F0F0", alignItems: "center", justifyContent: "center",
+  },
+  sheetTitle: { fontSize: 22, fontWeight: "800", color: "#111", textAlign: "center", marginTop: 4, marginBottom: 10 },
+  sheetSub: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 20, marginBottom: 20, paddingHorizontal: 8 },
+  sheetInput: {
+    backgroundColor: "#F0EEFF", borderRadius: 14,
+    padding: 16, fontSize: 14, color: "#333",
+    height: 130, lineHeight: 20,
+    marginBottom: 20,
+  },
+  sendBtn: {
+    borderRadius: 14, paddingVertical: 16, alignItems: "center",
+  },
+  sendBtnText: { fontSize: 16, fontWeight: "700" },
 });
 
 export default ProfilePage;

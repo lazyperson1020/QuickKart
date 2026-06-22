@@ -2,23 +2,26 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import {
   Text, View, TouchableOpacity, Image, StatusBar,
   ActivityIndicator, ScrollView, StyleSheet, TextInput,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { decrementQuantity, incrementQuantity, CartItem } from '../redux/cartSlice';
 import { RootState } from '../redux/store';
+import { dismissOfferModal } from '../redux/couponSlice';
+import { setSelectedAddress as setReduxAddress } from '../redux/addressSlice';
 import { GroceryProduct } from '../../components/productCard';
 import BillSummary from '../../components/cartCheckout/BillSummary';
 import CouponCard from '../../components/cartCheckout/CouponCard';
 import DealsRail from '../../components/cartCheckout/DealsRail';
 import BottomSheet from '../../components/BottomSheet';
 import AddressSelector from '../../components/cartCheckout/AddressSelector';
+import ScheduleOrderModal from '../../components/cartCheckout/ScheduleOrderModal';
 
 const PINK = '#FF3269';
 const BG = '#EEEEF7';
@@ -34,12 +37,18 @@ const TIP_OPTIONS = [
 export default function Cart() {
   const { top, bottom } = useSafeAreaInsets();
   const cart = useSelector((state: RootState) => state.cart);
+  const appliedOffer = useSelector((state: RootState) => state.coupon.appliedPaymentOffer);
+  const showOfferModal = useSelector((state: RootState) => state.coupon.showOfferModal);
+  const reduxAddress = useSelector((state: RootState) => state.address.selected);
+  const dispatch = useDispatch();
   const router = useRouter();
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [addressLoading, setAddressLoading] = useState(true);
   const [noBag, setNoBag] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledDelivery, setScheduledDelivery] = useState<{ dateLabel: string; slotDisplay: string; slotShort: string } | null>(null);
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [tipAmount, setTipAmount] = useState(0);
   const [tipTab, setTipTab] = useState<'tip' | 'instructions'>('tip');
@@ -50,27 +59,45 @@ export default function Cart() {
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
   }, []);
+  const knownAddressIdsRef = useRef<Set<string>>(new Set());
+  const isInitialAddressLoadRef = useRef(true);
 
   useEffect(() => { if (cart.length === 0) router.back(); }, [cart.length, router]);
 
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-        const snap = await getDocs(collection(db, 'users', user.uid, 'addresses'));
-        const data = snap.docs.map(doc => {
-          const d = doc.data();
-          return { id: doc.id, label: d.type ?? 'Home', address: d.fullAddress ?? '' };
-        }) as Address[];
-        setAddresses(data);
-        const def = data.find(a => snap.docs.find(d => d.id === a.id)?.data().isDefault) ?? data[0] ?? null;
-        setSelectedAddress(def);
-      } catch (e) { console.error('Address fetch error:', e); }
-      finally { setAddressLoading(false); }
-    };
-    fetchAddresses();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAddresses = async () => {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+          const snap = await getDocs(collection(db, 'users', user.uid, 'addresses'));
+          const data = snap.docs.map(doc => {
+            const d = doc.data();
+            return { id: doc.id, label: d.type ?? 'Home', address: d.fullAddress ?? '' };
+          }) as Address[];
+          setAddresses(data);
+
+          if (isInitialAddressLoadRef.current) {
+            isInitialAddressLoadRef.current = false;
+            const reduxMatch = reduxAddress ? data.find(a => a.id === reduxAddress.id) : null;
+            const def = reduxMatch
+              ?? data.find(a => snap.docs.find(d => d.id === a.id)?.data().isDefault)
+              ?? data[0]
+              ?? null;
+            setSelectedAddress(def);
+            if (def) dispatch(setReduxAddress({ id: def.id, label: def.label, address: def.address }));
+            knownAddressIdsRef.current = new Set(data.map(a => a.id));
+          } else {
+            const newAddr = data.find(a => !knownAddressIdsRef.current.has(a.id));
+            knownAddressIdsRef.current = new Set(data.map(a => a.id));
+            if (newAddr) setSelectedAddress(newAddr);
+          }
+        } catch (e) { console.error('Address fetch error:', e); }
+        finally { setAddressLoading(false); }
+      };
+      fetchAddresses();
+    }, [])
+  );
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -108,6 +135,15 @@ export default function Cart() {
   }, [cart]);
 
   const totalToPay = calculatedTotalPay + tipAmount;
+
+  const handleDeleteAddress = (id: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    if (selectedAddress?.id === id) setSelectedAddress(null);
+    knownAddressIdsRef.current.delete(id);
+    deleteDoc(doc(db, 'users', user.uid, 'addresses', id)).catch(console.error);
+  };
 
   const handleProductPress = (product: GroceryProduct) =>
     router.push({ pathname: '/(tabs)/productDetails', params: { productJson: JSON.stringify(product) } });
@@ -199,15 +235,32 @@ export default function Cart() {
         {/* Items card */}
         <View style={S.card}>
           <View style={S.deliveryRow}>
-            <Ionicons name="time-outline" size={20} color="#111" />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={S.deliveryTitle}>Delivering in 6 mins</Text>
-              <Text style={S.deliverySubtitle}>{cart.length} item{cart.length !== 1 ? 's' : ''}</Text>
-            </View>
-            <TouchableOpacity style={S.scheduleBtn} activeOpacity={0.8}>
-              <Ionicons name="calendar-outline" size={13} color="#E67E22" />
-              <Text style={S.scheduleBtnText}>Schedule</Text>
-            </TouchableOpacity>
+            {scheduledDelivery ? (
+              <>
+                <Ionicons name="calendar-outline" size={20} color="#2e7d32" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={S.deliveryTitle}>
+                    Arriving on {scheduledDelivery.dateLabel}, {scheduledDelivery.slotShort}
+                  </Text>
+                  <Text style={S.deliverySubtitle}>Shipment scheduled</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowScheduleModal(true)} activeOpacity={0.8}>
+                  <Text style={{ color: PINK, fontWeight: '700', fontSize: 14 }}>Edit</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Ionicons name="time-outline" size={20} color="#111" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={S.deliveryTitle}>Delivering in 6 mins</Text>
+                  <Text style={S.deliverySubtitle}>{cart.length} item{cart.length !== 1 ? 's' : ''}</Text>
+                </View>
+                <TouchableOpacity style={S.scheduleBtn} activeOpacity={0.8} onPress={() => setShowScheduleModal(true)}>
+                  <Ionicons name="calendar-outline" size={13} color="#E67E22" />
+                  <Text style={S.scheduleBtnText}>Schedule</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={S.divider} />
@@ -360,28 +413,103 @@ export default function Cart() {
 
       {/* Footer — in normal flow so it stays above the keyboard */}
       <View style={[S.footer, { paddingBottom: bottom > 0 ? bottom : 12 }]}>
-        <View>
-          <Text style={S.toPayLabel}>TO PAY</Text>
-          <Text style={S.toPayAmount}>₹{totalToPay}</Text>
-        </View>
-        <TouchableOpacity style={S.payOnlineBtn} activeOpacity={0.8}>
-          <Text style={S.payOnlineText}>Pay Online</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={S.cashBtn} activeOpacity={0.8}>
-          <Text style={S.cashBtnText}>PAY CASH/UPI</Text>
-          <Text style={S.cashBtnSubText}>(on delivery)</Text>
-        </TouchableOpacity>
+        {selectedAddress ? (
+          <>
+            <View>
+              <Text style={S.toPayLabel}>TO PAY</Text>
+              <Text style={S.toPayAmount}>₹{totalToPay}</Text>
+            </View>
+            <TouchableOpacity style={S.payOnlineBtn} activeOpacity={0.8}>
+              <Text style={S.payOnlineText}>Pay Online</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={S.cashBtn} activeOpacity={0.8}>
+              <Text style={S.cashBtnText}>PAY CASH/UPI</Text>
+              <Text style={S.cashBtnSubText}>(on delivery)</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={S.addAddressBar}
+            activeOpacity={0.8}
+            onPress={() => setShowAddressSheet(true)}
+          >
+            <Ionicons name="location-outline" size={20} color="#fff" />
+            <Text style={S.addAddressBarText}>Add a delivery address</Text>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <BottomSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)}>
         <AddressSelector
           addresses={addresses}
           selectedId={selectedAddress?.id}
-          onSelect={(addr: Address) => { setSelectedAddress(addr); setShowAddressSheet(false); }}
+          onSelect={(addr: Address) => {
+            setSelectedAddress(addr);
+            dispatch(setReduxAddress({ id: addr.id, label: addr.label, address: addr.address }));
+            setShowAddressSheet(false);
+          }}
           onClose={() => setShowAddressSheet(false)}
           onAddNew={() => { setShowAddressSheet(false); router.push('/(tabs)/address/addressAdd' as any); }}
+          onDelete={handleDeleteAddress}
         />
       </BottomSheet>
+
+      <ScheduleOrderModal
+        visible={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onConfirm={(dateLabel, slotDisplay, slotShort) => {
+          setScheduledDelivery({ dateLabel, slotDisplay, slotShort });
+          setShowScheduleModal(false);
+        }}
+        cartItems={cart}
+      />
+
+      {/* Payment offer applied confirmation modal */}
+      <Modal visible={showOfferModal} transparent animationType="fade" statusBarTranslucent>
+        <View style={S.modalOverlay}>
+          <View style={S.modalCard}>
+            {/* Illustration area */}
+            <View style={S.modalIllustration}>
+              <Ionicons name="wallet-outline" size={52} color="#1565C0" />
+              <View style={S.modalCheckBadge}>
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              </View>
+            </View>
+
+            {/* Content */}
+            <View style={S.modalContent}>
+              <Text style={S.modalTitle}>{appliedOffer?.title}</Text>
+              <Text style={S.modalSubtitle}>"{appliedOffer?.code} APPLIED"</Text>
+
+              <TouchableOpacity
+                style={S.gotItBtn}
+                activeOpacity={0.8}
+                onPress={() => dispatch(dismissOfferModal())}
+              >
+                <Text style={S.gotItBtnText}>Got it</Text>
+              </TouchableOpacity>
+
+              {/* Savings nudge */}
+              <TouchableOpacity
+                style={S.savingsNudge}
+                activeOpacity={0.8}
+                onPress={() => {
+                  dispatch(dismissOfferModal());
+                  router.push({ pathname: '/(tabs)/coupons' as any, params: { tab: 'coupons' } });
+                }}
+              >
+                <Ionicons name="pricetag" size={20} color="#2e7d32" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={S.nudgeTitle}>Don't miss extra savings!</Text>
+                  <Text style={S.nudgeSubtitle}>Apply coupons to save more</Text>
+                </View>
+                <Text style={S.nudgeArrow}>{'>>'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -770,6 +898,11 @@ const S = StyleSheet.create({
   payOnlineBtn: {
     flex: 1,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#CCC',
+    borderRadius: 14,
+    paddingVertical: 10,
+    marginHorizontal: 4,
   },
   payOnlineText: {
     fontSize: 15,
@@ -777,11 +910,12 @@ const S = StyleSheet.create({
     color: '#111',
   },
   cashBtn: {
+    flex: 1,
     backgroundColor: PINK,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 14,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cashBtnText: {
     fontSize: 13,
@@ -793,5 +927,103 @@ const S = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 1,
+  },
+  addAddressBar: {
+    flex: 1,
+    backgroundColor: PINK,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  addAddressBarText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  // Offer confirmation modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  modalIllustration: {
+    backgroundColor: '#EEF4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+  },
+  modalCheckBadge: {
+    position: 'absolute',
+    bottom: 22,
+    right: '37%',
+    backgroundColor: '#2e7d32',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  gotItBtn: {
+    borderWidth: 1.5,
+    borderColor: PINK,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  gotItBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: PINK,
+  },
+  savingsNudge: {
+    backgroundColor: '#F0FFF4',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  nudgeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2e7d32',
+  },
+  nudgeSubtitle: {
+    fontSize: 12,
+    color: '#555',
+    marginTop: 2,
+  },
+  nudgeArrow: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2e7d32',
   },
 });

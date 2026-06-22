@@ -6,7 +6,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import Animated, { useAnimatedStyle, interpolate, Extrapolate, makeMutable } from "react-native-reanimated";
 
-const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders", "/cart","/profile/wishlistPage"];
+const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders", "/cart", "/profile/wishlistPage", "/coupons", "/search", "/brandProducts"];
 
 // Global thread pointers shared with home.tsx
 export const globalLayoutScrollY = makeMutable(0);
@@ -116,7 +116,9 @@ function BottomTabBar() {
             style={styles.item}
             activeOpacity={0.7}
             onPress={() => {
-              router.push(tab.path as any);
+              if (!isActive) {
+                router.push(tab.path as any);
+              }
             }}
           >
             <View>

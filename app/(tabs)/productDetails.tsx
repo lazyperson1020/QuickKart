@@ -146,10 +146,26 @@ export default function ProductDetails() {
           {/* <Text style={styles.brandTitleTag}>Fresh Essentials</Text> */}
           <Text style={styles.mainProductName}>{product.name}</Text>
           
-          <TouchableOpacity style={styles.brandLinkRow} activeOpacity={0.7}>
-            <Text style={styles.brandLinkText}>See all products from this brand</Text>
-            <Ionicons name="chevron-forward" size={14} color={ZEPTO_PINK} />
-          </TouchableOpacity>
+          {product.brand && !['generic', 'n/a', 'na', 'none', 'unknown'].includes(product.brand.toLowerCase()) ? (
+            <TouchableOpacity
+              style={styles.brandLinkRow}
+              activeOpacity={0.75}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/brandProducts' as any,
+                  params: { brand: product.brand },
+                })
+              }
+            >
+              <Image
+                source={{ uri: product.imageUrl }}
+                style={styles.brandLogoThumb}
+                resizeMode="contain"
+              />
+              <Text style={styles.brandLinkText}>View all {product.brand} products</Text>
+              <Ionicons name="chevron-forward" size={16} color="#888" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+          ) : null}
 
           <Text style={styles.productMeasurementUnit}>{product.weight || '1 unit'}</Text>
           
@@ -337,14 +353,26 @@ const styles = StyleSheet.create({
   brandLinkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    alignSelf: 'flex-start',
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ZEPTO_BORDER_LIGHT,
+    gap: 10,
+  },
+  brandLogoThumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F0F0F0',
   },
   brandLinkText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: ZEPTO_PINK,
-    marginRight: 2,
+    fontSize: 14,
+    fontWeight: '600',
+    color: ZEPTO_TEXT_DARK,
+    flex: 1,
   },
   productMeasurementUnit: {
     fontSize: 14,

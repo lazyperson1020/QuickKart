@@ -1,14 +1,17 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { useSinglePress } from '../hooks/useSinglePress';
 
 export interface OrderItem { id: string; name: string; imageUrl: string; weight: string; price: number; originalPrice: number; quantity: number; category: string; }
 interface PreviousOrdersCardProps { status: string; totalAmount: number; dateString: string; items?: OrderItem[]; onOrderAgain: () => void; onViewDetails: () => void; }
 
 export default function PreviousOrdersCard({ status, totalAmount, dateString, items = [], onOrderAgain, onViewDetails }: PreviousOrdersCardProps) {
+  const safeViewDetails = useSinglePress(onViewDetails);
+  const safeOrderAgain = useSinglePress(onOrderAgain);
   return (
     <View style={{ backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 16, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#EEF0F2' }}>
-      <TouchableOpacity activeOpacity={0.7} onPress={onViewDetails} style={{ padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <TouchableOpacity activeOpacity={0.7} onPress={safeViewDetails} style={{ padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}><Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>Order {status} </Text><Ionicons name={status === 'delivered' ? "checkmark-circle" : status === 'cancelled' ? "close-circle" : "time"} size={16} color={status === 'delivered' ? "#10B981" : status === 'cancelled' ? "#EF4444" : "#F59E0B"} /></View>
           <Text style={{ fontSize: 13, color: '#666' }}>Placed at {dateString}</Text>
@@ -23,7 +26,7 @@ export default function PreviousOrdersCard({ status, totalAmount, dateString, it
           </View>
         ))}
       </View>
-      <TouchableOpacity activeOpacity={0.8} onPress={onOrderAgain} style={{ borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' }}><Text style={{ color: '#E91E63', fontWeight: '700', fontSize: 14 }}>Order Again</Text></TouchableOpacity>
+      <TouchableOpacity activeOpacity={0.8} onPress={safeOrderAgain} style={{ borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' }}><Text style={{ color: '#E91E63', fontWeight: '700', fontSize: 14 }}>Order Again</Text></TouchableOpacity>
     </View>
   );
 }

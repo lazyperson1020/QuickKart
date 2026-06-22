@@ -7,13 +7,17 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useLocalSearchParams, router } from "expo-router";
 import { auth, db } from "../../../firebase";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AddressEdit = () => {
   const { addressId } = useLocalSearchParams();
+  const { bottom } = useSafeAreaInsets();
 
   const [type, setType] = useState("");
   const [houseNo, setHouseNo] = useState("");
@@ -67,60 +71,74 @@ const AddressEdit = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Edit Address</Text>
-
-      <Text style={styles.label}>Label (Home / Work / Other)</Text>
-      <TextInput
-        style={styles.input}
-        value={type}
-        onChangeText={setType}
-        placeholder="e.g. Home"
-      />
-
-      <Text style={styles.label}>House / Flat No.</Text>
-      <TextInput
-        style={styles.input}
-        value={houseNo}
-        onChangeText={setHouseNo}
-        placeholder="e.g. 42B"
-      />
-
-      <Text style={styles.label}>Apartment / Society</Text>
-      <TextInput
-        style={styles.input}
-        value={apartment}
-        onChangeText={setApartment}
-        placeholder="e.g. Sunrise Apartments"
-      />
-
-      <Text style={styles.label}>Landmark</Text>
-      <TextInput
-        style={styles.input}
-        value={landmark}
-        onChangeText={setLandmark}
-        placeholder="e.g. Near City Mall"
-      />
-
-      <Text style={styles.label}>Full Address</Text>
-      <TextInput
-        style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-        value={fullAddress}
-        onChangeText={setFullAddress}
-        placeholder="Street, City, Pin code"
-        multiline
-      />
-
-      <TouchableOpacity
-        style={[styles.button, saving && { opacity: 0.6 }]}
-        onPress={updateAddress}
-        disabled={saving}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.buttonText}>
-          {saving ? "Saving…" : "Save Address"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={styles.heading}>Edit Address</Text>
+
+        <Text style={styles.label}>Label (Home / Work / Other)</Text>
+        <TextInput
+          style={styles.input}
+          value={type}
+          onChangeText={setType}
+          placeholder="e.g. Home"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>House / Flat No.</Text>
+        <TextInput
+          style={styles.input}
+          value={houseNo}
+          onChangeText={setHouseNo}
+          placeholder="e.g. 42B"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Apartment / Society</Text>
+        <TextInput
+          style={styles.input}
+          value={apartment}
+          onChangeText={setApartment}
+          placeholder="e.g. Sunrise Apartments"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Landmark</Text>
+        <TextInput
+          style={styles.input}
+          value={landmark}
+          onChangeText={setLandmark}
+          placeholder="e.g. Near City Mall"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Full Address</Text>
+        <TextInput
+          style={[styles.input, { height: 80, textAlignVertical: "top" }]}
+          value={fullAddress}
+          onChangeText={setFullAddress}
+          placeholder="Street, City, Pin code"
+          multiline
+        />
+
+        <TouchableOpacity
+          style={[styles.button, saving && { opacity: 0.6 }]}
+          onPress={updateAddress}
+          disabled={saving}
+        >
+          <Text style={styles.buttonText}>
+            {saving ? "Saving…" : "Save Address"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

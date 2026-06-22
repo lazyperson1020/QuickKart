@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 
 interface Address { id: string; label: string; address: string; }
@@ -10,6 +10,7 @@ interface Props {
   onSelect: (addr: Address) => void;
   onClose: () => void;
   onAddNew: () => void;
+  onDelete?: (id: string) => void;
 }
 
 const ICON_MAP: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
@@ -23,7 +24,14 @@ function getIcon(label: string): React.ComponentProps<typeof Ionicons>['name'] {
   return ICON_MAP[key] ?? 'location-outline';
 }
 
-export default function AddressSelector({ addresses, selectedId, onSelect, onClose, onAddNew }: Props) {
+export default function AddressSelector({ addresses, selectedId, onSelect, onClose, onAddNew, onDelete }: Props) {
+  const confirmDelete = (id: string) => {
+    Alert.alert('Delete Address', 'Are you sure you want to delete this address?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => onDelete?.(id) },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       {/* Header */}
@@ -54,26 +62,33 @@ export default function AddressSelector({ addresses, selectedId, onSelect, onClo
             renderItem={({ item }) => {
               const isSelected = selectedId === item.id;
               return (
-                <TouchableOpacity
-                  onPress={() => onSelect(item)}
-                  activeOpacity={0.8}
-                  style={[styles.card, isSelected && styles.cardSelected]}
-                >
-                  <View style={styles.iconCircle}>
-                    <Ionicons name={getIcon(item.label)} size={20} color="#555" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.labelRow}>
-                      <Text style={styles.cardLabel}>{item.label}</Text>
-                      {isSelected && (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>Selected</Text>
-                        </View>
-                      )}
+                <View style={[styles.card, isSelected && styles.cardSelected]}>
+                  <TouchableOpacity
+                    onPress={() => onSelect(item)}
+                    activeOpacity={0.8}
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}
+                  >
+                    <View style={styles.iconCircle}>
+                      <Ionicons name={getIcon(item.label)} size={20} color="#555" />
                     </View>
-                    <Text style={styles.cardAddress} numberOfLines={2}>{item.address}</Text>
-                  </View>
-                </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.labelRow}>
+                        <Text style={styles.cardLabel}>{item.label}</Text>
+                        {isSelected && (
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>Selected</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.cardAddress} numberOfLines={2}>{item.address}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  {onDelete && (
+                    <TouchableOpacity onPress={() => confirmDelete(item.id)} hitSlop={8} style={styles.deleteBtn}>
+                      <Ionicons name="trash-outline" size={18} color="#FF3269" />
+                    </TouchableOpacity>
+                  )}
+                </View>
               );
             }}
           />
@@ -182,5 +197,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     lineHeight: 18,
+  },
+  deleteBtn: {
+    paddingLeft: 8,
+    paddingTop: 2,
+    justifyContent: 'center',
   },
 });
