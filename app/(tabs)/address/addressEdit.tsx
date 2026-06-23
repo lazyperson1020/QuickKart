@@ -7,13 +7,18 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useLocalSearchParams, router } from "expo-router";
 import { auth, db } from "../../../firebase";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AddressEdit = () => {
   const { addressId } = useLocalSearchParams();
+  const { top, bottom } = useSafeAreaInsets();
 
   const [type, setType] = useState("");
   const [houseNo, setHouseNo] = useState("");
@@ -67,60 +72,81 @@ const AddressEdit = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Edit Address</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#f5f5f5" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
+      {/* Sticky header */}
+      <View style={[styles.header, { paddingTop: top }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color="#111" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Address</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-      <Text style={styles.label}>Label (Home / Work / Other)</Text>
-      <TextInput
-        style={styles.input}
-        value={type}
-        onChangeText={setType}
-        placeholder="e.g. Home"
-      />
-
-      <Text style={styles.label}>House / Flat No.</Text>
-      <TextInput
-        style={styles.input}
-        value={houseNo}
-        onChangeText={setHouseNo}
-        placeholder="e.g. 42B"
-      />
-
-      <Text style={styles.label}>Apartment / Society</Text>
-      <TextInput
-        style={styles.input}
-        value={apartment}
-        onChangeText={setApartment}
-        placeholder="e.g. Sunrise Apartments"
-      />
-
-      <Text style={styles.label}>Landmark</Text>
-      <TextInput
-        style={styles.input}
-        value={landmark}
-        onChangeText={setLandmark}
-        placeholder="e.g. Near City Mall"
-      />
-
-      <Text style={styles.label}>Full Address</Text>
-      <TextInput
-        style={[styles.input, { height: 80, textAlignVertical: "top" }]}
-        value={fullAddress}
-        onChangeText={setFullAddress}
-        placeholder="Street, City, Pin code"
-        multiline
-      />
-
-      <TouchableOpacity
-        style={[styles.button, saving && { opacity: 0.6 }]}
-        onPress={updateAddress}
-        disabled={saving}
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.buttonText}>
-          {saving ? "Saving…" : "Save Address"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={styles.label}>Label (Home / Work / Other)</Text>
+        <TextInput
+          style={styles.input}
+          value={type}
+          onChangeText={setType}
+          placeholder="e.g. Home"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>House / Flat No.</Text>
+        <TextInput
+          style={styles.input}
+          value={houseNo}
+          onChangeText={setHouseNo}
+          placeholder="e.g. 42B"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Apartment / Society</Text>
+        <TextInput
+          style={styles.input}
+          value={apartment}
+          onChangeText={setApartment}
+          placeholder="e.g. Sunrise Apartments"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Landmark</Text>
+        <TextInput
+          style={styles.input}
+          value={landmark}
+          onChangeText={setLandmark}
+          placeholder="e.g. Near City Mall"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Full Address</Text>
+        <TextInput
+          style={[styles.input, { height: 80, textAlignVertical: "top" }]}
+          value={fullAddress}
+          onChangeText={setFullAddress}
+          placeholder="Street, City, Pin code"
+          multiline
+        />
+
+        <TouchableOpacity
+          style={[styles.button, saving && { opacity: 0.6 }]}
+          onPress={updateAddress}
+          disabled={saving}
+        >
+          <Text style={styles.buttonText}>
+            {saving ? "Saving…" : "Save Address"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -130,16 +156,38 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  header: {
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111",
+  },
   container: {
     padding: 20,
     backgroundColor: "#f5f5f5",
     flexGrow: 1,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 20,
-    color: "#111",
   },
   label: {
     fontSize: 13,

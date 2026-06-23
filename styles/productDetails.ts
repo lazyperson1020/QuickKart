@@ -10,15 +10,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#E9D5FF',
   },
   bodyContainer: {
-    backgroundColor: '#E3E3E3',
+    backgroundColor: '#E9D5FF',
     flex: 1,
   },
   productImage: {
     height: 300,
-    backgroundColor: '#E3E3E3',
+    backgroundColor: '#E9D5FF',
   },
   productInfoContainer: {
     padding: 15,
@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14.5,
-    color: 'red',
+    color: '#e91e63',
     fontWeight: '500',
     letterSpacing: 0.5,
   },
@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   discountBadge: {
-    backgroundColor: 'red',
+    backgroundColor: '#2e7d32',
     paddingHorizontal: 10,
     borderRadius: 5,
     paddingVertical: 5,
@@ -82,7 +82,7 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   addButton: {
-    backgroundColor: 'red',
+    backgroundColor: '#35035C',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 10,
@@ -106,16 +106,20 @@ export const styles = StyleSheet.create({
   },
   quantityContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'red',
+    backgroundColor: '#35035C',
     borderRadius: 10,
     paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  quantityBtn: {
+    padding: 6,
   },
   quantity: {
     fontSize: 16,
     color: '#fff',
-    paddingHorizontal: 8,
+    fontWeight: '700',
+    paddingHorizontal: 10,
   },
   descriptionContainer: {
     padding: 15,
@@ -128,10 +132,10 @@ export const styles = StyleSheet.create({
     lineHeight: 24,
   },
   footerContainer: {
-    backgroundColor: '#E3E3E3',
+    backgroundColor: '#E9D5FF',
   },
   btnCart: {
-    backgroundColor: 'red',
+    backgroundColor: '#35035C',
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
@@ -143,4 +147,39 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
+  outOfStockImage: {
+  opacity: 0.4,
+},
+
+outOfStockBanner: {
+  backgroundColor: '#f3e8ff',
+  marginHorizontal: 15,
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+},
+
+outOfStockTitle: {
+  color: '#6b21a8',
+  fontWeight: '700',
+  fontSize: 14,
+},
+
+outOfStockSubtitle: {
+  color: '#666',
+  marginTop: 4,
+  fontSize: 13,
+},
+
+notifyButton: {
+  backgroundColor: '#e91e63',
+  paddingHorizontal: 20,
+  paddingVertical: 8,
+  borderRadius: 10,
+},
+
+notifyButtonText: {
+  color: '#fff',
+  fontWeight: '600',
+},
 });

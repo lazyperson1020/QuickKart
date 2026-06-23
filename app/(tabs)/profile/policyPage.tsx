@@ -1,217 +1,95 @@
-import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-import { SafeAreaView } from "react-native-safe-area-context";
+const PINK = '#E91E8C';
 
-import { Ionicons } from "@expo/vector-icons";
-
-import { useRouter } from "expo-router";
-
-import { signOut } from "firebase/auth";
-import { auth } from "../../../firebase";
-
-import ProfileElementCard from "./profileElementCard";
-
-const ProfilePage = () => {
+export default function PolicyPage() {
   const router = useRouter();
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-
-      router.replace("/(auth)/login");
-    } catch (error) {
-      Alert.alert("Error", "Logout failed");
-    }
-  };
-
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: "#F4F4F4",
-      }}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-
-        <View
-          style={{
-            paddingHorizontal: 20,
-            paddingTop: 20,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 30,
-              fontWeight: "700",
-            }}
-          >
-            Profile
-          </Text>
-        </View>
-
-        {/* User */}
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            padding: 20,
-          }}
-        >
-          <View
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 35,
-              backgroundColor: "#E8D9FF",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Ionicons
-              name="person"
-              size={40}
-              color="#7E57C2"
-            />
-          </View>
-
-          <View
-            style={{
-              marginLeft: 15,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 24,
-                fontWeight: "700",
-              }}
-            >
-              Arnav Shah
-            </Text>
-
-            <Text
-              style={{
-                color: "#777",
-                marginTop: 4,
-              }}
-            >
-              8209120209
-            </Text>
-          </View>
-        </View>
-
-        {/* Information Section */}
-
-        <View
-          style={{
-            backgroundColor: "#fff",
-            marginHorizontal: 15,
-            borderRadius: 16,
-            paddingHorizontal: 15,
-          }}
-        >
-          <ProfileElementCard
-            title="Previous Orders"
-            icon="bag-outline"
-            onPress={() =>
-              router.push(
-                "/profile/previousOrders"
-              )
-            }
-          />
-
-          <ProfileElementCard
-            title="Wishlist"
-            icon="heart-outline"
-            onPress={() =>
-              router.push(
-                "/profile/wishlistPage"
-              )
-            }
-          />
-
-          <ProfileElementCard
-            title="Saved Addresses"
-            icon="location-outline"
-            onPress={() =>
-              router.push(
-                "/address/addressList"
-              )
-            }
-          />
-
-          <ProfileElementCard
-            title="Refunds"
-            icon="cash-outline"
-            onPress={() =>
-              router.push(
-                "/profile/refundsPage"
-              )
-            }
-          />
-
-          <ProfileElementCard
-            title="Policies"
-            icon="document-text-outline"
-            onPress={() =>
-              router.push(
-                "/profile/policyPage"
-              )
-            }
-          />
-        </View>
-
-        {/* Logout */}
-
-        <TouchableOpacity
-          onPress={logout}
-          style={{
-            backgroundColor: "#fff",
-            marginHorizontal: 15,
-            marginTop: 20,
-            borderRadius: 16,
-            padding: 18,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "600",
-            }}
-          >
-            Log Out
-          </Text>
+    <SafeAreaView style={S.container}>
+      <View style={S.header}>
+        <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
+          <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
+        <Text style={S.headerTitle}>Policies</Text>
+        <View style={{ width: 36 }} />
+      </View>
 
-        <View
-          style={{
-            alignItems: "center",
-            marginTop: 20,
-            marginBottom: 30,
-          }}
-        >
-          <Text
-            style={{
-              color: "#888",
-            }}
-          >
-            QuickKart v1.0.0
-          </Text>
+      <View style={S.emptyState}>
+        <View style={S.iconWrap}>
+          <Ionicons name="document-text-outline" size={56} color={PINK} />
         </View>
-      </ScrollView>
+        <Text style={S.emptyTitle}>No Policies Yet</Text>
+        <Text style={S.emptySubtitle}>
+          Our policies and terms will be available here soon.
+        </Text>
+      </View>
     </SafeAreaView>
   );
-};
+}
 
-export default ProfilePage;
+const S = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F0F5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#F0F0F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  iconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FDE8F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

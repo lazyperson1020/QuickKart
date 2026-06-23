@@ -1,21 +1,33 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addProduct, incrementQuantity, decrementQuantity } from '../app/redux/cartSlice';
 import { toggleWishlist } from '../app/redux/wishlistSlice';
 import { RootState } from '../app/redux/store';
-
+import Toast from 'react-native-toast-message';
+import { auth } from '../firebase';
+import { addToWishlistFirestore, removeFromWishlistFirestore } from '../app/utils/wishlistFirestore';
+import { useSinglePress } from '../hooks/useSinglePress';
 export interface GroceryProduct {
   id: string;
+  sku?: string;
   name: string;
-  weight: string;
   price: number;
   originalPrice: number;
   imageUrl: string;
+  weight: string;
+  position?: number;
+  stock: number;
+  category?: string;
+  subCategory?: string;
+  brand?: string;
+  tags?: string[];
+  inStock?: boolean;
+  description: string;
 }
 
-export default function ProductCard({ product }: { product: GroceryProduct }) {
+export default function ProductCard({ product, cardWidth = 130 }: { product: GroceryProduct; cardWidth?: number }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: RootState) => state.cart);
   const wishlist = useSelector((state: RootState) => state.wishlist);
@@ -24,21 +36,67 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
   const isWishlisted = wishlist.some((item) => item.id === product.id);
   const savings = (product.originalPrice || 0) - (product.price || 0);
 
+  const handleWishlist = useSinglePress(() => {
+    dispatch(toggleWishlist(product));
+    const user = auth.currentUser;
+    if (user) {
+      if (isWishlisted) {
+        removeFromWishlistFirestore(user.uid, product.id).catch(console.error);
+      } else {
+        addToWishlistFirestore(user.uid, product).catch(console.error);
+      }
+    }
+  });
+  const handleAdd = useSinglePress(() => {
+    if (product.stock <= 0) { showStockToast(); return; }
+    dispatch(addProduct(product));
+  });
+  const handleDecrement = useSinglePress(() => dispatch(decrementQuantity(product)), 300);
+  const handleIncrement = useSinglePress(() => {
+    if (cartItem && cartItem.quantity >= product.stock) { showStockToast(); return; }
+    dispatch(incrementQuantity(product));
+  }, 300);
+
+  const showStockToast = () => {
+  Toast.show({
+    type: 'error',
+    text1:
+      product.stock <= 0
+        ? 'This item is out of stock'
+        : `Only ${product.stock} unit(s) available`,
+    position: 'bottom',
+  });
+};
+
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, { width: cardWidth }]}>
 
       {/* IMAGE + floating controls */}
-      <View style={styles.imageWrapper}>
-        <Image
-          source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
+      <View style={[styles.imageWrapper, { width: cardWidth, height: cardWidth }]}>
+
+          {product.stock <= 0 && (
+            <View style={styles.soldOutBadge}>
+              <Text style={styles.soldOutText}>
+                Sold Out
+              </Text>
+            </View>
+          )}
+
+          <Image
+            source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
+            style={[
+              styles.productImage,
+              product.stock <= 0 && {
+                opacity: 0.35,
+              },
+            ]}
+            resizeMode="cover"
+          />
 
         {/* Wishlist heart — top-right */}
         <TouchableOpacity
           style={styles.heartButton}
-          onPress={() => dispatch(toggleWishlist(product))}
+          onPress={handleWishlist}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -50,42 +108,69 @@ export default function ProductCard({ product }: { product: GroceryProduct }) {
 
         {/* ADD / qty controls — bottom-center */}
         {cartItem ? (
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity onPress={() => dispatch(decrementQuantity(product))} hitSlop={8}>
+          <Pressable style={styles.quantityContainer} onPress={() => {}}>
+            <Pressable
+              onPress={handleDecrement}
+              hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
               <AntDesign name="minus" size={14} color="#e91e63" />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{cartItem.quantity}</Text>
-            <TouchableOpacity onPress={() => dispatch(incrementQuantity(product))} hitSlop={8}>
+            </Pressable>
+
+            <Text style={styles.quantityText}>
+              {cartItem.quantity}
+            </Text>
+
+            <Pressable
+              onPress={handleIncrement}
+              hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
               <AntDesign name="plus" size={14} color="#e91e63" />
-            </TouchableOpacity>
-          </View>
+            </Pressable>
+          </Pressable>
+        ) : product.stock <= 0 ? (
+          <Pressable style={styles.notifyButton} onPress={() => {}}>
+            <Ionicons
+              name="notifications-outline"
+              size={16}
+              color="#e91e63"
+            />
+            <Text style={styles.notifyText}>
+              Notify
+            </Text>
+          </Pressable>
         ) : (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => dispatch(addProduct(product))}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={handleAdd}
           >
-            <Text style={styles.addButtonText}>ADD</Text>
-          </TouchableOpacity>
+            <Text style={styles.addButtonText}>
+              ADD
+            </Text>
+          </Pressable>
         )}
       </View>
 
-      {/* PRICE ROW */}
-      <View style={styles.priceRow}>
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>₹{product.price}</Text>
+      {/* TEXT CONTENT */}
+      <View style={styles.textContent}>
+        {/* PRICE ROW */}
+        <View style={styles.priceRow}>
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceText}>₹{product.price}</Text>
+          </View>
+          {product.originalPrice > product.price && (
+            <Text style={styles.originalPriceText}>₹{product.originalPrice}</Text>
+          )}
         </View>
-        {product.originalPrice > product.price && (
-          <Text style={styles.originalPriceText}>₹{product.originalPrice}</Text>
-        )}
+
+        {savings > 0 && <Text style={styles.savingsText}>₹{savings} OFF</Text>}
+
+        <Text style={styles.productName} numberOfLines={2}>
+          {product.name}
+        </Text>
+        <Text style={styles.weightText}>{product.weight}</Text>
       </View>
-
-      {savings > 0 && <Text style={styles.savingsText}>₹{savings} OFF</Text>}
-
-      <Text style={styles.productName} numberOfLines={2}>
-        {product.name}
-      </Text>
-      <Text style={styles.weightText}>{product.weight}</Text>
 
     </View>
   );
@@ -97,6 +182,10 @@ const styles = StyleSheet.create({
     marginRight: 14,
     backgroundColor: '#fff',
     borderRadius: 8,
+  },
+  textContent: {
+    paddingHorizontal: 8,
+    paddingBottom: 6,
   },
   imageWrapper: {
     width: 130,
@@ -166,7 +255,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 5,
     gap: 6,
   },
   priceBadge: {
@@ -195,12 +284,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#212121',
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: 3,
     lineHeight: 16,
   },
   weightText: {
     fontSize: 11,
     color: '#757575',
-    marginTop: 2,
+    marginTop: 1,
   },
+  notifyButton: {
+  position: 'absolute',
+  bottom: 8,
+  left: 12,
+  right: 12,
+
+  backgroundColor: '#fff',
+
+  borderWidth: 1.5,
+  borderColor: '#e91e63',
+
+  borderRadius: 8,
+
+  paddingVertical: 5,
+
+  flexDirection: 'row',
+
+  justifyContent: 'center',
+
+  alignItems: 'center',
+
+  gap: 4,
+},
+
+notifyText: {
+  color: '#e91e63',
+  fontWeight: '700',
+  fontSize: 13,
+},
+soldOutBadge: {
+  position: 'absolute',
+  top: 6,
+  left: 6,
+  backgroundColor: '#fff',
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 8,
+  zIndex: 100,
+},
+
+soldOutText: {
+  fontSize: 11,
+  fontWeight: '600',
+  color: '#555',
+},
 });

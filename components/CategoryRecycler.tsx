@@ -1,98 +1,214 @@
-import React, { useMemo } from "react";
-import { RecyclerListView, DataProvider, LayoutProvider } from "recyclerlistview";
-import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, View, TouchableOpacity, StyleSheet, ScrollView, Image } from "react-native";
+import Animated, { useAnimatedStyle, interpolate, Extrapolate, SharedValue } from "react-native-reanimated";
+import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase"; 
 
 interface CategoryRecyclerProps {
   selectedCategory: string;
   onSelectCategory: (categoryTitle: string) => void;
+  scrollY: SharedValue<number>;
 }
 
-const categories = [
-  { id: "1", icon: "🛒", title: "All" },
-  { id: "2", icon: "🍎", title: "Fresh" },
-  { id: "3", icon: "🥛", title: "Dairy" },
-  { id: "4", icon: "🍪", title: "Snacks" },
-  { id: "5", icon: "🥤", title: "Drinks" },
-  { id: "6", icon: "🍫", title: "Chocolate" },
+interface CategoryItem {
+  id: string;
+  type: string;
+  name: string;
+  title: string;
+  color?: string;
+  iconUrl?: string; 
+}
+
+// Local fallbacks matching your initial setup
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { id: "1", type: "material", name: "apps", title: "All", color: "#552A86" },
+  { id: "2", type: "fa6", name: "apple-whole", title: "Fresh", color: "#E12222" },
+  { id: "3", type: "material", name: "bottle-tonic-plus-outline", title: "Dairy", color: "#1E88E5" },
+  { id: "4", type: "material", name: "cookie-outline", title: "Snacks", color: "#D97706" },
+  { id: "5", type: "material", name: "cup-water", title: "Drinks", color: "#06B6D4" },
+  { id: "6", type: "material", name: "candy-outline", title: "Chocolate", color: "#B45309" },
 ];
 
-export default function CategoryRecycler({ selectedCategory, onSelectCategory }: CategoryRecyclerProps) {
-  
-  const dataProvider = useMemo(() => {
-    return new DataProvider((r1, r2) => r1 !== r2).cloneWithRows(categories);
-  }, []);
+const COLLAPSE_THRESHOLD = 70;
 
-  const layoutProvider = useMemo(() => {
-    return new LayoutProvider(
-      () => "CATEGORY",
-      (type, dim) => {
-        dim.width = 90;
-        dim.height = 95;
+export default function CategoryRecycler({ 
+  selectedCategory, 
+  onSelectCategory, 
+  scrollY 
+}: CategoryRecyclerProps) {
+
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    const fetchDynamicCategories = async () => {
+      try {
+        const snap = await getDocs(collection(db, "categoryPriority"));
+        if (!snap.empty) {
+          const fetchedItems = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              title: doc.id, 
+              type: data.iconType || "material",
+              name: data.iconName || "basket",
+              color: data.iconColor || "#35035C",
+              iconUrl: data.iconUrl || null, // Capture your image link here
+              recyclerPriority: data.recyclerPriority ?? 99 
+            };
+          });
+
+          fetchedItems.sort((a, b) => a.recyclerPriority - b.recyclerPriority);
+
+          setCategories([
+            { id: "All", type: "material", name: "apps", title: "All" },
+            ...fetchedItems
+          ]);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch custom dynamic navigation positions:", err);
       }
-    );
+    };
+
+    fetchDynamicCategories();
   }, []);
 
-  // 1. Notice how we destructure the internal `extendedState` from the list engine parameters here
-  const rowRenderer = (type: string | number, item: any, index: number, extendedState: any) => {
-    // 2. Use the forced state to safely determine selection matches
-    const isActive = extendedState?.currentSelected === item.title;
-
-    return (
-      <TouchableOpacity 
-        activeOpacity={0.7}
-        onPress={() => onSelectCategory(item.title)}
-        style={styles.itemWrapper}
-      >
-        <Text style={{ fontSize: 30 }}>{item.icon}</Text>
-        <Text style={[styles.title, isActive && styles.activeTitle]}>
-          {item.title}
-        </Text>
-        
-        {/* The Bottom Black Selection Bar */}
-        {isActive && <View style={styles.activeIndicator} />}
-      </TouchableOpacity>
-    );
-  };
+  const animatedTrackStyle = useAnimatedStyle(() => {
+    const height = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [95, 46], Extrapolate.CLAMP);
+    return { height };
+  });
 
   return (
-    <View style={{ height: 105 }}>
-      <RecyclerListView
-        isHorizontal
+    <Animated.View style={[styles.track, animatedTrackStyle]}>
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
-        dataProvider={dataProvider}
-        layoutProvider={layoutProvider}
-        rowRenderer={rowRenderer}
-        
-        // 3. THIS IS THE FIX: Passing global dependencies down into the row recycler layout
-        extendedState={{ currentSelected: selectedCategory }}
-      />
-    </View>
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {categories.map((item) => {
+          const isActive = selectedCategory === item.title;
+
+          const animatedIconStyle = useAnimatedStyle(() => {
+            const opacity = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD * 0.5], [1, 0], Extrapolate.CLAMP);
+            const scale = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [1, 0], Extrapolate.CLAMP);
+            const height = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [36, 0], Extrapolate.CLAMP);
+            const marginBottom = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [4, 0], Extrapolate.CLAMP);
+            
+            return { opacity, transform: [{ scale }], height, marginBottom };
+          });
+
+          const animatedItemStyle = useAnimatedStyle(() => {
+            const paddingTop = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [8, 12], Extrapolate.CLAMP);
+            const paddingBottom = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [8, 12], Extrapolate.CLAMP);
+            
+            return { paddingTop, paddingBottom };
+          });
+
+          return (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.7}
+              onPress={() => onSelectCategory(item.title)}
+              style={styles.touchTarget}
+            >
+              <Animated.View style={[styles.itemWrapper, animatedItemStyle]}>
+                
+                {/* Dynamic Graphics View Frame */}
+                <Animated.View style={[animatedIconStyle, styles.iconCentered]}>
+                  <View style={[styles.iconBubble, { backgroundColor: isActive ? '#F5EEFF' : '#F3F4F6' }]}>
+                    
+                    {/* CONDITIONALLY RENDER IMAGE OR FALLBACK TO VECTOR ICON */}
+                    {item.iconUrl ? (
+                      <Image 
+                        source={{ uri: item.iconUrl }} 
+                        style={styles.categoryImage} 
+                        resizeMode="contain" 
+                      />
+                    ) : item.type === "material" ? (
+                      <MaterialCommunityIcons 
+                        name={item.name as any} 
+                        size={22} 
+                        color={isActive ? "#35035C" : "#4B5563"} 
+                      />
+                    ) : (
+                      <FontAwesome6 
+                        name={item.name} 
+                        size={18} 
+                        color={isActive ? "#35035C" : "#4B5563"} 
+                      />
+                    )}
+
+                  </View>
+                </Animated.View>
+
+                <Text style={[styles.title, isActive && styles.activeTitle]}>
+                  {item.title}
+                </Text>
+
+                {isActive && <View style={styles.activeIndicator} />}
+              </Animated.View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  track: {
+    backgroundColor: "#fff",
+    width: "100%",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    overflow: "hidden",
+  },
+  scrollContainer: {
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  touchTarget: {
+    width: 78,
+    height: "100%",
+  },
   itemWrapper: {
-    width: 90,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    position: 'relative'
+    position: "relative",
+  },
+  iconCentered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconBubble: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden", // Ensures custom images fit inside the bubble frame perfectly
+  },
+  categoryImage: {
+    width: 26, // Sized perfectly to rest cleanly inside your 38px bubble frame
+    height: 26,
   },
   title: {
-    marginTop: 6,
-    fontWeight: "500",
-    color: "#555",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4B5563",
+    letterSpacing: -0.1,
   },
   activeTitle: {
-    fontWeight: "700",
-    color: "#000",
+    fontWeight: "800",
+    color: "#35035C", 
   },
   activeIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
-    width: 50,          
-    height: 3,           
-    backgroundColor: '#000000', 
+    width: 40,
+    height: 3,
+    backgroundColor: "#35035C",
     borderRadius: 2,
-  }
+  },
 });

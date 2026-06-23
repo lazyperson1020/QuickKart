@@ -1,13 +1,23 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-const AddressCard = ({ item, onEdit }: any) => {
+const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
   const detailLine = [item.houseNo, item.apartment]
     .filter(Boolean)
     .join(", ");
 
+  const confirmDelete = () => {
+    Alert.alert("Delete Address", "Are you sure you want to delete this address?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => onDelete?.(item.id) },
+    ]);
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={onSelect ? 0.75 : 1}
+      onPress={onSelect}
       style={{
         backgroundColor: "white",
         padding: 16,
@@ -18,16 +28,33 @@ const AddressCard = ({ item, onEdit }: any) => {
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 2 },
         elevation: 2,
+        borderWidth: isSelected ? 1.5 : 0,
+        borderColor: isSelected ? "#ff2d7a" : "transparent",
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-        <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>
+        <Text style={{ fontSize: 16, fontWeight: "700", color: "#111", flex: 1 }}>
           {item.type}
         </Text>
-        {item.isDefault && (
+        {isSelected && (
           <View
             style={{
-              marginLeft: 8,
+              marginRight: 8,
+              backgroundColor: "#fce4ec",
+              borderRadius: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+            }}
+          >
+            <Text style={{ fontSize: 11, color: "#ff2d7a", fontWeight: "700" }}>
+              Selected
+            </Text>
+          </View>
+        )}
+        {!isSelected && item.isDefault && (
+          <View
+            style={{
+              marginRight: 8,
               backgroundColor: "#e8f5e9",
               borderRadius: 6,
               paddingHorizontal: 8,
@@ -38,6 +65,11 @@ const AddressCard = ({ item, onEdit }: any) => {
               Default
             </Text>
           </View>
+        )}
+        {onDelete && (
+          <TouchableOpacity onPress={confirmDelete} hitSlop={8}>
+            <Ionicons name="trash-outline" size={20} color="#FF3269" />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -59,12 +91,17 @@ const AddressCard = ({ item, onEdit }: any) => {
         </Text>
       )}
 
-      <TouchableOpacity onPress={onEdit}>
+      <TouchableOpacity
+        onPress={(e) => {
+          e.stopPropagation?.();
+          onEdit?.();
+        }}
+      >
         <Text style={{ marginTop: 12, color: "#ff2d7a", fontWeight: "600", fontSize: 14 }}>
           Edit Address
         </Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 

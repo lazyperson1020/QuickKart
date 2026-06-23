@@ -3,34 +3,41 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E9D5FF",
+    backgroundColor: "#fff", // Set white base background so layout gaps melt away
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 16,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  deliveryTime: {
-    fontSize: 28,
-    fontWeight: "bold",
-  },
-  address: {
-    marginTop: 5,
-    fontSize: 15,
-  },
-  profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#7c3aed",
-    justifyContent: "center",
     alignItems: "center",
   },
+  deliveryTime: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#000",
+    letterSpacing: -0.5,
+  },
+  address: {
+    marginTop: 2,
+    fontSize: 13,
+    color: "#444",
+    fontWeight: "500",
+  },
+  profileButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
   profileIcon: {
-    color: "white",
-    fontSize: 20,
+    fontSize: 16,
   },
   storeList: {
     paddingHorizontal: 20,
@@ -48,20 +55,25 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchBar: {
-    backgroundColor: "white",
-    margin: 20,
-    borderRadius: 15,
-    padding: 18,
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#F3F4F6", // Light gray background tracking Zepto specification
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46, // Clean operational height profile
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 15,
+    color: "#6B7280",
   },
   searchPlaceholder: {
-    color: "#888",
-    fontSize: 15,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#9CA3AF",
   },
   bannerRow: {
     flexDirection: "row",
@@ -97,11 +109,13 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginLeft: 20,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111",
+    marginLeft: 16,
     marginTop: 24,
     marginBottom: 12,
+    letterSpacing: -0.3,
   },
   productList: {
     paddingHorizontal: 20,

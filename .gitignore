@@ -89,3 +89,5 @@ Thumbs.db
 
 scripts/
 assests/MockData
+data/
+serviceAccountKey.json
