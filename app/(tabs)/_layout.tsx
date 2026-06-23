@@ -6,7 +6,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import Animated, { useAnimatedStyle, interpolate, Extrapolate, makeMutable } from "react-native-reanimated";
 
-const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders", "/cart", "/profile/wishlistPage", "/coupons", "/search", "/brandProducts"];
+const HIDE_ON_SCREENS = ["/productDetails", "/address", "/orderTracking", "/orders", "/cart", "/profile/wishlistPage", "/coupons", "/search", "/brandProducts", "/categoryProducts"];
 
 // Global thread pointers shared with home.tsx
 export const globalLayoutScrollY = makeMutable(0);

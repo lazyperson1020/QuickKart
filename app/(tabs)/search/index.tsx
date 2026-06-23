@@ -210,7 +210,11 @@ export default function DealsScreen() {
                 </View>
 
                 {filteredByPrice.length > 6 && (
-                  <TouchableOpacity style={S.seeAllBtn} activeOpacity={0.8}>
+                  <TouchableOpacity
+                    style={S.seeAllBtn}
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/(tabs)/search/results' as any)}
+                  >
                     <Text style={S.seeAllText}>See All</Text>
                     <Ionicons name="chevron-forward" size={14} color="#555" />
                   </TouchableOpacity>
@@ -243,7 +247,11 @@ export default function DealsScreen() {
                   </View>
 
                   {items.length > 4 && (
-                    <TouchableOpacity style={S.seeAllBtn} activeOpacity={0.8}>
+                    <TouchableOpacity
+                      style={S.seeAllBtn}
+                      activeOpacity={0.8}
+                      onPress={() => router.push({ pathname: '/(tabs)/categoryProducts' as any, params: { category: sec.key } })}
+                    >
                       <Text style={S.seeAllText}>See All</Text>
                       <Ionicons name="chevron-forward" size={14} color="#555" />
                     </TouchableOpacity>

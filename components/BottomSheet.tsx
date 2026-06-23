@@ -1,15 +1,14 @@
-import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, { useEffect } from "react";
+import { Dimensions, KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from "react-native-reanimated";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -27,92 +26,47 @@ export default function BottomSheet({
   children,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(height)).current;
+  const translateY = useSharedValue(height);
 
   useEffect(() => {
-    if (visible) {
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 120,
-      }).start();
-    } else {
-      Animated.timing(translateY, {
-        toValue: height,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
+    translateY.value = visible
+      ? withSpring(0, { damping: 20, stiffness: 120, overshootClamping: true })
+      : withTiming(height, { duration: 250 });
   }, [visible]);
 
-  const closeSheet = () => {
-    Animated.timing(translateY, {
-      toValue: height,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
+  const dismiss = () => {
+    translateY.value = withTiming(height, { duration: 250 }, () => runOnJS(onClose)());
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        return gesture.dy > 5;
-      },
-
-      onPanResponderMove: (_, gesture) => {
-        if (gesture.dy > 0) {
-          translateY.setValue(gesture.dy);
-        }
-      },
-
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 120) {
-          closeSheet();
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationY > 0) translateY.value = e.translationY;
     })
-  ).current;
+    .onEnd((e) => {
+      if (e.translationY > 120 || e.velocityY > 500) {
+        translateY.value = withTiming(height, { duration: 250 }, () => runOnJS(onClose)());
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 120 });
+      }
+    });
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-    >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior="padding"
-      >
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={closeSheet}
-        />
-
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[
-            styles.sheet,
-            {
-              height,
-              paddingBottom: insets.bottom,
-              transform: [{ translateY }],
-            },
-          ]}
-        >
-          <View style={styles.handle} />
-
-          {children}
-        </Animated.View>
-      </KeyboardAvoidingView>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={styles.overlay} behavior="padding">
+          <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
+          <GestureDetector gesture={pan}>
+            <Animated.View style={[styles.sheet, { height, paddingBottom: insets.bottom }, animStyle]}>
+              <View style={styles.handle} />
+              {children}
+            </Animated.View>
+          </GestureDetector>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -123,7 +77,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-
   sheet: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 28,
@@ -131,7 +84,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
   },
-
   handle: {
     width: 50,
     height: 5,

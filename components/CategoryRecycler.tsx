@@ -1,7 +1,9 @@
-import React from "react";
-import { Text, View, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, View, TouchableOpacity, StyleSheet, ScrollView, Image } from "react-native";
 import Animated, { useAnimatedStyle, interpolate, Extrapolate, SharedValue } from "react-native-reanimated";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase"; 
 
 interface CategoryRecyclerProps {
   selectedCategory: string;
@@ -9,8 +11,17 @@ interface CategoryRecyclerProps {
   scrollY: SharedValue<number>;
 }
 
-// Professional vector icon mapping configuration matching your inventory types
-const categories = [
+interface CategoryItem {
+  id: string;
+  type: string;
+  name: string;
+  title: string;
+  color?: string;
+  iconUrl?: string; 
+}
+
+// Local fallbacks matching your initial setup
+const DEFAULT_CATEGORIES: CategoryItem[] = [
   { id: "1", type: "material", name: "apps", title: "All", color: "#552A86" },
   { id: "2", type: "fa6", name: "apple-whole", title: "Fresh", color: "#E12222" },
   { id: "3", type: "material", name: "bottle-tonic-plus-outline", title: "Dairy", color: "#1E88E5" },
@@ -26,6 +37,41 @@ export default function CategoryRecycler({
   onSelectCategory, 
   scrollY 
 }: CategoryRecyclerProps) {
+
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    const fetchDynamicCategories = async () => {
+      try {
+        const snap = await getDocs(collection(db, "categoryPriority"));
+        if (!snap.empty) {
+          const fetchedItems = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              title: doc.id, 
+              type: data.iconType || "material",
+              name: data.iconName || "basket",
+              color: data.iconColor || "#35035C",
+              iconUrl: data.iconUrl || null, // Capture your image link here
+              recyclerPriority: data.recyclerPriority ?? 99 
+            };
+          });
+
+          fetchedItems.sort((a, b) => a.recyclerPriority - b.recyclerPriority);
+
+          setCategories([
+            { id: "All", type: "material", name: "apps", title: "All" },
+            ...fetchedItems
+          ]);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch custom dynamic navigation positions:", err);
+      }
+    };
+
+    fetchDynamicCategories();
+  }, []);
 
   const animatedTrackStyle = useAnimatedStyle(() => {
     const height = interpolate(scrollY.value, [0, COLLAPSE_THRESHOLD], [95, 46], Extrapolate.CLAMP);
@@ -67,10 +113,18 @@ export default function CategoryRecycler({
             >
               <Animated.View style={[styles.itemWrapper, animatedItemStyle]}>
                 
-                {/* Vector Graphic Icon View Frame Container */}
+                {/* Dynamic Graphics View Frame */}
                 <Animated.View style={[animatedIconStyle, styles.iconCentered]}>
                   <View style={[styles.iconBubble, { backgroundColor: isActive ? '#F5EEFF' : '#F3F4F6' }]}>
-                    {item.type === "material" ? (
+                    
+                    {/* CONDITIONALLY RENDER IMAGE OR FALLBACK TO VECTOR ICON */}
+                    {item.iconUrl ? (
+                      <Image 
+                        source={{ uri: item.iconUrl }} 
+                        style={styles.categoryImage} 
+                        resizeMode="contain" 
+                      />
+                    ) : item.type === "material" ? (
                       <MaterialCommunityIcons 
                         name={item.name as any} 
                         size={22} 
@@ -83,15 +137,14 @@ export default function CategoryRecycler({
                         color={isActive ? "#35035C" : "#4B5563"} 
                       />
                     )}
+
                   </View>
                 </Animated.View>
 
-                {/* Scaled Text Track Label */}
                 <Text style={[styles.title, isActive && styles.activeTitle]}>
                   {item.title}
                 </Text>
 
-                {/* Underline Indicator Tracking Line */}
                 {isActive && <View style={styles.activeIndicator} />}
               </Animated.View>
             </TouchableOpacity>
@@ -134,6 +187,11 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden", // Ensures custom images fit inside the bubble frame perfectly
+  },
+  categoryImage: {
+    width: 26, // Sized perfectly to rest cleanly inside your 38px bubble frame
+    height: 26,
   },
   title: {
     fontSize: 12,
@@ -143,7 +201,7 @@ const styles = StyleSheet.create({
   },
   activeTitle: {
     fontWeight: "800",
-    color: "#35035C", // Tint active text selection color to match app brand identity
+    color: "#35035C", 
   },
   activeIndicator: {
     position: "absolute",

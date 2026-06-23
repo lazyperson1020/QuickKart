@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -82,6 +82,7 @@ export default function SearchResultsScreen() {
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
   const scrollHandler = useCartPanelScrollHandler();
+  const chipScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -137,7 +138,7 @@ export default function SearchResultsScreen() {
           {filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{searchQuery}"
         </Text>
       )}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+      <ScrollView ref={chipScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
         <TouchableOpacity
           style={[styles.chip, activeFilterCount > 0 && styles.chipActive]}
           onPress={() => setFilterSheetVisible(true)}
@@ -157,7 +158,7 @@ export default function SearchResultsScreen() {
         })}
 
         {activeFilterCount > 0 && (
-          <TouchableOpacity style={styles.resetChip} onPress={() => setFilters(DEFAULT_FILTERS)}>
+          <TouchableOpacity style={styles.resetChip} onPress={() => { setFilters(DEFAULT_FILTERS); chipScrollRef.current?.scrollTo({ x: 0, animated: true }); }}>
             <Ionicons name="close" size={13} color="#e91e63" />
             <Text style={styles.resetChipText}>Clear</Text>
           </TouchableOpacity>

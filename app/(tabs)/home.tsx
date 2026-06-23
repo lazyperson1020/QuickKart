@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, Text, TouchableOpacity, ActivityIndicator, StatusBar, Dimensions, Image } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, StatusBar, Dimensions, Image, RefreshControl } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -48,7 +48,7 @@ interface GroupedProducts {
 }
 
 export default function Home() {
-  const { address: gpsAddress, permissionStatus, openSettings } = useLocation();
+  const { address: gpsAddress, permissionStatus, openSettings, requestLocationAccess } = useLocation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -71,24 +71,50 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showOffers, setShowOffers] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const scrollRef = useRef<Animated.ScrollView>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-
+  
+  // FIXED: Moved categories array state to top level safely
+  const [categories, setCategories] = useState<string[]>(["Dairy", "Fresh", "Snacks", "Electronics", "Drinks"]);
+  
   // Internal location reference hook channel 
   const lastOffset = useSharedValue(0);
 
   useEffect(() => {
     const fetchFirestoreProducts = async () => {
-      setLoading(true); setFetchError(null);
+      if (!refreshing) setLoading(true); setFetchError(null);
       try {
         let fetchedItems: GroceryProduct[] = [];
+        let activeCategoriesOrder = [...categories];
+
         if (selectedCategory === "All") {
-          const categories = ["Dairy", "Fresh", "Snacks", "Electronics"];
-          const snapshots = await Promise.all(categories.map(cat => getDocs(collection(db, "products", cat, `${cat}Collection`))));
+          try {
+            // FIXED: Inline backend fetch and JavaScript sorting block sequence
+            const snap = await getDocs(collection(db, "categoryPriority"));
+            if (!snap.empty) {
+              const ordered = snap.docs
+                .map(d => ({ id: d.id, ...(d.data() as { priority: number }) }))
+                .sort((a, b) => a.priority - b.priority);
+              
+              const sortedIds = ordered.map(c => c.id);
+              if (sortedIds.length > 0) {
+                activeCategoriesOrder = sortedIds;
+                setCategories(sortedIds); // Synchronizes structural category changes back up safely
+              }
+            }
+          } catch (err) {
+            console.warn("Using offline default array ordering rules:", err);
+          }
+
+          const snapshots = await Promise.all(
+            activeCategoriesOrder.map(cat => getDocs(collection(db, "products", cat, `${cat}Collection`)))
+          );
           
           snapshots.forEach((currentSnapshot, index) => {
-            const currentCatName = categories[index];
+            const currentCatName = activeCategoriesOrder[index];
             currentSnapshot.forEach((doc) => {
               const data = doc.data(); 
               fetchedItems.push({ 
@@ -117,22 +143,46 @@ export default function Home() {
       } catch (error: any) { 
         console.error("Firestore Fetch Error:", error); 
         setFetchError(error?.message ?? "Failed to load products."); 
-      } finally { 
-        setLoading(false); 
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
     };
     fetchFirestoreProducts();
-  }, [selectedCategory]);
+  }, [selectedCategory, refreshKey]);
   
   const categoryGroupedSections = useMemo(() => {
     const groups: GroupedProducts = {};
-    products.forEach(product => {
-      const sectionKey = product.category ?? "Miscellaneous";
-      if (!groups[sectionKey]) groups[sectionKey] = [];
-      groups[sectionKey].push(product);
+    
+    // Initialize groups based on the fetched database IDs (e.g., "Fresh", "Dairy")
+    categories.forEach(cat => {
+      groups[cat] = [];
     });
+
+    products.forEach(product => {
+      const productCat = product.category ?? "Miscellaneous";
+      
+      // Look for a case-insensitive match inside your predefined groups
+      const matchedKey = Object.keys(groups).find(
+        key => key.toLowerCase() === productCat.toLowerCase()
+      );
+
+      if (matchedKey) {
+        groups[matchedKey].push(product);
+      } else {
+        // Fallback catch-all for unmatched items
+        if (!groups[productCat]) groups[productCat] = [];
+        groups[productCat].push(product);
+      }
+    });
+
+    // Clean out groups that are completely unpopulated
+    Object.keys(groups).forEach(key => {
+      if (groups[key].length === 0) delete groups[key];
+    });
+
     return groups;
-  }, [products]);
+  }, [products, categories]);
 
   const subCategoryGroupedSections = useMemo(() => {
     const groups: GroupedProducts = {};
@@ -193,9 +243,7 @@ export default function Home() {
     };
   });
 
-  // Glides your custom overlay downward perfectly when bottom nav options hide
   const useFloatingCartShiftStyle = useAnimatedStyle(() => {
-    // Dynamic clearance drops straight down by the real device height metrics
     const hiddenTravelDistance = TAB_BAR_RAW_HEIGHT;
     
     const translateY = interpolate(
@@ -230,33 +278,16 @@ export default function Home() {
     opacity: interpolate(cartBarProgress.value, [0, 0.25], [0, 1], Extrapolate.CLAMP),
   }));
 
-  const triggerTabRedirect = (categoryKey: string) => {
-    setSelectedCategory(categoryKey);
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-  };
-
   const topBarStaticPadding = insets.top + METADATA_HEIGHT + SEARCH_BAR_HEIGHT + 95;
-
-  // FIX: This places the floating cart wrapper bar precisely on top of the layout tabs, safe from bezel cutouts
   const calculatedDeviceBottomOffset = TAB_BAR_RAW_HEIGHT + insets.bottom + 6;
 
   return (
   <View style={{ flex: 1, backgroundColor: "#fff" }}>
     
-    {/* ==================== STATUS BAR VISIBILITY PATCH ==================== */}
-    {/* 1. backgroundColor="transparent" removes the blocky dark purple bar.
-      2. barStyle="dark-content" forces notification icons to render in clean dark gray/black.
-      3. translucent={true} allows our layout content to seamlessly flow up under the notification area.
-    */}
     <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent={true} />
 
-    {/* FIXED FLOATING HEAD PANELS CONTAINER */}
-    {/* CRITICAL: We keep paddingTop: insets.top so your address layout context 
-      rests perfectly below the notification bar icons instead of smashing into them!
-    */}
     <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: "#fff", paddingTop: insets.top }}>
       
-      {/* ROW 1: Address Metadata Block */}
       <Animated.View style={[{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", overflow: "hidden" }, useMetadataCollapseStyle]}>
         <View style={{ flex: 1, paddingRight: 10, justifyContent: "center", height: METADATA_HEIGHT }}>
           <Text style={{ fontSize: 22, fontWeight: "900", color: "#3c1053", letterSpacing: -0.5 }}>⚡ 7 minutes</Text>
@@ -287,7 +318,6 @@ export default function Home() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* ROW 2: Search Input Field */}
       <View style={{ height: SEARCH_BAR_HEIGHT, justifyContent: "center" }}>
         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={goToSearch} activeOpacity={0.9}>
           <Text style={{ fontSize: 15, color: "#6B7280", marginRight: 8 }}>🔍</Text>
@@ -295,45 +325,9 @@ export default function Home() {
         </TouchableOpacity>
       </View>
       
-      {/* ROW 3: Horizontal Categories */}
       <CategoryRecycler selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} scrollY={globalLayoutScrollY} />
     </View>
 
-      {/* FLOATING TOP CONTAINER STACK PANEL */}
-      {/* <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: "#fff", paddingTop: insets.top }}>
-        <Animated.View style={[{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", overflow: "hidden" }, useMetadataCollapseStyle]}>
-          <View style={{ flex: 1, paddingRight: 10, justifyContent: "center", height: METADATA_HEIGHT }}>
-            <Text style={{ fontSize: 22, fontWeight: "900", color: "#000", letterSpacing: -0.5 }}>⚡ 7 minutes</Text>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-              <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ color: "#4B5563", fontSize: 13, fontWeight: "500" }}>
-                  {displayAddress}
-                </Text>
-              </TouchableOpacity>
-              {showEnableButton && (
-                <TouchableOpacity onPress={openSettings} activeOpacity={0.75} style={{ flexDirection: "row", alignItems: "center", marginLeft: 8, backgroundColor: "#F3E8FF", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D8B4FE" }}>
-                  <Ionicons name="settings-outline" size={11} color="#7C3AED" style={{ marginRight: 3 }} />
-                  <Text style={{ color: "#7C3AED", fontSize: 11, fontWeight: "700" }}>Enable</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-          <TouchableOpacity onPress={goToProfile} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>
-            <Ionicons name="person-circle" size={32} color="#000000" />
-          </TouchableOpacity>
-        </Animated.View>
-
-        <View style={{ height: SEARCH_BAR_HEIGHT, justifyContent: "center" }}>
-          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={goToSearch} activeOpacity={0.9}>
-            <Text style={{ fontSize: 15, color: "#6B7280", marginRight: 8 }}>🔍</Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 14, fontWeight: "500" }}>Search for milk, fruits, veggies...</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <CategoryRecycler selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} scrollY={globalLayoutScrollY} />
-      </View> */}
-
-      {/* ACTION CHIP OVERLAY */}
       <Animated.View style={[{ position: "absolute", top: insets.top + SEARCH_BAR_HEIGHT + 60, alignSelf: "center", zIndex: 20 }, useBackToTopAnimation]}>
         <TouchableOpacity 
           onPress={() => {
@@ -347,12 +341,20 @@ export default function Home() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* MAIN CONTENT FEED VIEW CANVAS */}
-      <Animated.ScrollView 
+      <Animated.ScrollView
         ref={scrollRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); setRefreshKey(k => k + 1); }}
+            colors={["#35035C"]}
+            tintColor="#35035C"
+            progressViewOffset={topBarStaticPadding}
+          />
+        }
         contentContainerStyle={{ 
           paddingTop: topBarStaticPadding + 16, 
           paddingBottom: 0,
@@ -390,7 +392,7 @@ export default function Home() {
                   <Text style={{ fontSize: 20, fontWeight: "800", color: "#111", letterSpacing: -0.4 }}>
                     {categoryName}
                   </Text>
-                  <TouchableOpacity onPress={() => triggerTabRedirect(categoryName)} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/categoryProducts' as any, params: { category: categoryName } })} activeOpacity={0.7}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>See all ›</Text>
                     </View>
@@ -413,10 +415,15 @@ export default function Home() {
             {Object.keys(subCategoryGroupedSections).map((subSectionName) => (
               <View key={subSectionName} style={{ marginBottom: 8, marginTop: 4 }}>
 
-                <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 8 }}>
+                <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 8, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontSize: 20, fontWeight: "800", color: "#111", letterSpacing: -0.4 }}>
                     {subSectionName}
                   </Text>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/categoryProducts' as any, params: { category: selectedCategory, subCategory: subSectionName } })} activeOpacity={0.7}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>See all ›</Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={{ paddingHorizontal: 8 }}>
@@ -432,7 +439,6 @@ export default function Home() {
           </View>
         )}
 
-        {/* Footer image */}
         <Image
           source={require('../../assets/footerImages/homefooter.png')}
           style={{ width, height: screenHeight * 0.55, marginTop: 8 }}
@@ -440,34 +446,22 @@ export default function Home() {
         />
       </Animated.ScrollView>
 
-      {/* ==================== FIXED MOBILE SAFE OFFERS + CART PANEL DECK ==================== */}
       <Animated.View style={[{ position: 'absolute', bottom: calculatedDeviceBottomOffset, left: 12, right: 12, zIndex: 30, paddingTop: 28 }, useFloatingCartShiftStyle]}>
         <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 8 }}>
 
-          {/* Dark offers progress panel row layout component element */}
           <Animated.View style={[darkSectionAnimStyle, { height: 52, borderRadius: 16, overflow: 'visible' }]}>
             <TouchableOpacity
               onPress={() => setShowOffers(true)}
               activeOpacity={0.8}
               style={{ position: 'absolute', top: -30, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}
             >
-              <View style={{
-                backgroundColor: '#423f3f',
-                paddingHorizontal: 16, paddingVertical: 5,
-                borderRadius: 20, 
-                // borderWidth: 1.5,
-                // shadowColor: '#e91e63', shadowOffset: { width: 0, height: 0 },
-                // shadowOpacity: 0.55, shadowRadius: 5, elevation: 5,
-              }}>
+              <View style={{ backgroundColor: '#423f3f', paddingHorizontal: 16, paddingVertical: 5, borderRadius: 20 }}>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12, letterSpacing: 0.3 }}>Offers  ↑</Text>
               </View>
             </TouchableOpacity>
 
             <View style={{ flex: 1, backgroundColor: '#423f3f', borderRadius: 16, overflow: 'hidden', elevation: 6}}>
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 }}>
-                {/* <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                  <Text style={{ fontSize: 16 }}></Text>
-                </View> */}
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }} numberOfLines={1}>
                     Unlock free delivery
@@ -487,7 +481,6 @@ export default function Home() {
             </View>
           </Animated.View>
 
-          {/* Pink expandable action split module cart container block element */}
           <Animated.View style={[
             cartSectionAnimStyle,
             { height: 52, borderRadius: 16, overflow: 'hidden',
@@ -523,7 +516,6 @@ export default function Home() {
         </View>
       </Animated.View>
 
-      {/* OFFERS BOTTOM SHEET */}
       <BottomSheet visible={showOffers} onClose={() => setShowOffers(false)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>Offers For You</Text>

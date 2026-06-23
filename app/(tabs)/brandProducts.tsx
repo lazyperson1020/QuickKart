@@ -69,7 +69,7 @@ export default function BrandProductsScreen() {
           <TouchableOpacity style={{ padding: 4 }}>
             <Ionicons name="heart-outline" size={22} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity style={{ padding: 4 }}>
+          <TouchableOpacity style={{ padding: 4 }} onPress={() => router.push('/(tabs)/search/results' as any)}>
             <Ionicons name="search-outline" size={22} color="#111" />
           </TouchableOpacity>
         </View>

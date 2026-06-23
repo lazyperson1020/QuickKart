@@ -121,7 +121,7 @@ export default function ProductDetails() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={ZEPTO_TEXT_DARK} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.rightHeaderAction}>
+        <TouchableOpacity style={styles.rightHeaderAction} onPress={() => router.push('/(tabs)/search/results' as any)}>
           <Feather name="search" size={22} color={ZEPTO_TEXT_DARK} />
         </TouchableOpacity>
       </View>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, FlatList } from 'react-native';
+import { View, Pressable, FlatList } from 'react-native';
 import ProductCard, { GroceryProduct } from './productCard';
 import { useSinglePress } from '../hooks/useSinglePress';
 
@@ -31,13 +31,13 @@ export default function ProductRail({ products, onProductPress, rows = 1 }: Prod
         renderItem={({ item: pair }) => (
           <View style={{ flexDirection: 'column', gap: 12 }}>
             {pair.map(product => (
-              <TouchableOpacity
+              <Pressable
                 key={product.id}
                 onPress={() => safePress(product)}
-                activeOpacity={0.85}
+                style={({ pressed }) => pressed && { opacity: 0.85 }}
               >
                 <ProductCard product={product} />
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         )}
@@ -56,9 +56,9 @@ export default function ProductRail({ products, onProductPress, rows = 1 }: Prod
       data={products}
       keyExtractor={item => item.id}
       renderItem={({ item }) => (
-        <TouchableOpacity onPress={() => safePress(item)} activeOpacity={0.85}>
+        <Pressable onPress={() => safePress(item)} style={({ pressed }) => pressed && { opacity: 0.85 }}>
           <ProductCard product={item} />
-        </TouchableOpacity>
+        </Pressable>
       )}
       ItemSeparatorComponent={SEPARATOR}
       ListHeaderComponent={HEADER}

@@ -420,7 +420,7 @@ export default function CategoryDetailScreen() {
           <TouchableOpacity
             hitSlop={8}
             style={{ marginLeft: 14 }}
-            onPress={() => router.push('/(tabs)/search' as any)}
+            onPress={() => router.push('/(tabs)/search/results' as any)}
           >
             <Ionicons name="search-outline" size={24} color="#111" />
           </TouchableOpacity>

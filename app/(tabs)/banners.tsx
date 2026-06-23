@@ -44,7 +44,7 @@
 // export default BannerRail;
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Image, ActivityIndicator, Text, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Image, Text, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedRef, 
@@ -118,11 +118,7 @@ export default function BannerRail() {
     targetXOffset.value = calculatedIndex * (BANNER_WIDTH + ITEM_SPACING);
   };
 
-  if (loading) return (
-    <View style={styles.centerContainer}>
-      <ActivityIndicator size="small" color="#35035C" />
-    </View>
-  );
+  if (loading) return <View style={styles.centerContainer} />;
   
   if (error) return (
     <Text style={styles.errorText}>{error}</Text>

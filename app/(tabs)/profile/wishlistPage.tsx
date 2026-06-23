@@ -58,7 +58,7 @@ export default function WishlistPage() {
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wishlist</Text>
-        <TouchableOpacity hitSlop={8}>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push('/(tabs)/search/results' as any)}>
           <Ionicons name="search-outline" size={24} color="#111" />
         </TouchableOpacity>
       </View>

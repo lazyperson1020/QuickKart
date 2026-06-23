@@ -45,7 +45,7 @@ export default function DealsRail({
           marginBottom: 12,
         }}
       >
-        Deals Starting At ₹9
+        
       </Text>
 
       <ProductRail

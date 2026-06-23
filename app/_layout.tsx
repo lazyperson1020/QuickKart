@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 import Toast from "react-native-toast-message";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
-import { store } from "./redux/store";
+import { store, persistor } from "./redux/store";
 import { auth } from "../firebase";
 import { setWishlist } from "./redux/wishlistSlice";
 import { loadWishlistFromFirestore } from "./utils/wishlistFirestore";
@@ -43,9 +45,13 @@ export default function RootLayout() {
   if (authLoading || !fontsLoaded) return null;
 
   return (
-    <Provider store={store}>
-      <Stack screenOptions={{ headerShown: false }} />
-      <Toast />
-    </Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <Stack screenOptions={{ headerShown: false }} />
+          <Toast />
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
 }

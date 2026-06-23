@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Linking, AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 
+// Survives component remounts (e.g. tab stack pushes) within the same JS session
+let _locationInitialized = false;
+
 export interface Locality {
   name: string;
   district: string;
@@ -70,7 +73,6 @@ const useLocation = (): LocationHook => {
   const [errorMsg, setErrorMsg] = useState('');
 
   const isFetchingRef = useRef(false);
-  const hasRunAutoCheckRef = useRef(false); // STOPS LIFECYCLE LOOPS
   const appStateRef = useRef(AppState.currentState);
 
   const fetchLocationData = useCallback(async (lat: number, lng: number) => {
@@ -160,8 +162,8 @@ const useLocation = (): LocationHook => {
     let isMounted = true;
 
     const initializeAndCheckPermissions = async () => {
-      if (hasRunAutoCheckRef.current) return;
-      hasRunAutoCheckRef.current = true;
+      if (_locationInitialized) return;
+      _locationInitialized = true;
 
       const { status, canAskAgain: askable } = await Location.getForegroundPermissionsAsync();
 
@@ -172,8 +174,6 @@ const useLocation = (): LocationHook => {
 
       if (status === 'granted') {
         await getLocation();
-      } else if (status === 'undetermined') {
-        await requestLocationAccess();
       } else {
         setAddress('Location unavailable');
         setLoading(false);
@@ -203,7 +203,7 @@ const useLocation = (): LocationHook => {
       isMounted = false;
       subscription.remove();
     };
-  }, [getLocation, requestLocationAccess]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     latitude,

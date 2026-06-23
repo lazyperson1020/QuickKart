@@ -82,15 +82,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   circleActive: {
     backgroundColor: '#F5EEFF',
-    borderWidth: 2,
     borderColor: '#35035C',
   },
   image: {
-    width: CIRCLE,
-    height: CIRCLE,
+    width: CIRCLE - 4,
+    height: CIRCLE - 4,
   },
   fallback: {
     fontSize: 20,

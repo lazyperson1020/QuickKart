@@ -110,7 +110,7 @@ export default function AllProductsScreen() {
           <TouchableOpacity hitSlop={8} onPress={() => router.push('/(tabs)/profile/wishlistPage' as any)}>
             <Ionicons name="heart-outline" size={24} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity hitSlop={8} onPress={() => setShowSearch((v) => !v)} style={{ marginLeft: 14 }}>
+          <TouchableOpacity hitSlop={8} onPress={() => router.push('/(tabs)/search/results' as any)} style={{ marginLeft: 14 }}>
             <Ionicons name="search-outline" size={24} color="#111" />
           </TouchableOpacity>
         </View>

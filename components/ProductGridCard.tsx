@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Image, Pressable, Dimensions } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addProduct, incrementQuantity, decrementQuantity } from '../app/redux/cartSlice';
@@ -44,7 +44,7 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
   }, 300);
 
   return (
-    <TouchableOpacity style={[styles.cardContainer, { width: resolvedWidth }]} onPress={onPress} activeOpacity={0.9}>
+    <Pressable style={({ pressed }) => [styles.cardContainer, { width: resolvedWidth }, pressed && { opacity: 0.9 }]} onPress={onPress}>
       {/* Image + ADD/qty overlay */}
       <View style={[styles.imageWrapper, { width: resolvedWidth, height: Math.round(resolvedWidth * 0.76) }]}>
         {isOutOfStock && (
@@ -58,34 +58,35 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
           resizeMode="cover"
         />
         {cartItem ? (
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity
+          <Pressable style={styles.quantityContainer} onPress={() => {}}>
+            <Pressable
               onPress={handleDecrement}
               hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             >
               <AntDesign name="minus" size={14} color="#e91e63" />
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.quantityText}>{cartItem.quantity}</Text>
-            <TouchableOpacity
+            <Pressable
               onPress={handleIncrement}
               hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             >
               <AntDesign name="plus" size={14} color="#e91e63" />
-            </TouchableOpacity>
-          </View>
+            </Pressable>
+          </Pressable>
         ) : isOutOfStock ? (
-          <TouchableOpacity style={styles.notifyButton} activeOpacity={0.8}>
+          <Pressable style={styles.notifyButton} onPress={() => {}}>
             <Ionicons name="notifications-outline" size={16} color="#e91e63" />
             <Text style={styles.notifyText}>Notify</Text>
-          </TouchableOpacity>
+          </Pressable>
         ) : (
-          <TouchableOpacity
-            style={styles.addButton}
+          <Pressable
+            style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.7 : 1 }]}
             onPress={handleAdd}
-            activeOpacity={0.8}
           >
             <Text style={styles.addButtonText}>ADD</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -107,7 +108,7 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
         {product.name}
       </Text>
       <Text style={styles.weightText}>{product.weight}</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
