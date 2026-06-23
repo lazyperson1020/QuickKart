@@ -8,6 +8,14 @@ export const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: colors.background,
     },
+    logo: {
+        width: 150,          
+        height: 150,         
+        marginBottom: 24,    
+        borderRadius: 75,    
+        alignSelf:'center',
+        
+    },
     title: {
         fontSize: 28,
         fontWeight: "700",

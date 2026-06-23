@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBJIA7-fqrbo22r8NMiiEjOIGKu0tQVkfc",
-  authDomain: "quickkart-76b4d.firebaseapp.com",
-  projectId: "quickkart-76b4d",
-  storageBucket: "quickkart-76b4d.firebasestorage.app",
-  messagingSenderId: "293274003857",
-  appId: "1:293274003857:web:4414e03a67183c112b5230",
-  measurementId: "G-31KMZF29V2"
+  apiKey: "AIzaSyCfAAz6b0g7frOkbv2lNI8mKbEzZsLY8Ew",
+  authDomain: "quickkart-c7286.firebaseapp.com",
+  projectId: "quickkart-c7286",
+  storageBucket: "quickkart-c7286.firebasestorage.app",
+  messagingSenderId: "841977073445",
+  appId: "1:841977073445:web:baae4c1a35444e9ce994cc",
+  measurementId: "G-J5EMB370WZ"
 };
 
 const app = initializeApp(firebaseConfig);
