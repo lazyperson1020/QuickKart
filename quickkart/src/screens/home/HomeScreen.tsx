@@ -49,7 +49,7 @@ interface GroupedProducts {
 }
 
 export default function Home() {
-  const { address: gpsAddress, permissionStatus, openSettings, requestLocationAccess } = useLocation();
+  const { address: gpsAddress, permissionStatus } = useLocation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
@@ -59,7 +59,6 @@ export default function Home() {
   const displayAddress = reduxSelectedAddress
     ? `${reduxSelectedAddress.label} • ${reduxSelectedAddress.address}`
     : permissionStatus === 'denied' ? "Location unavailable" : gpsAddress;
-  const showEnableButton = !reduxSelectedAddress && (permissionStatus === 'denied' || permissionStatus === 'undetermined');
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -328,12 +327,6 @@ export default function Home() {
               </Text>
               <Ionicons name="chevron-down" size={13} color="#6B7280" style={{ marginLeft: 3 }} />
             </TouchableOpacity>
-            {/* {showEnableButton && (
-               <TouchableOpacity onPress={openSettings} activeOpacity={0.75} style={{ flexDirection: "row", alignItems: "center", marginLeft: 8, backgroundColor: "#F3E8FF", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D8B4FE" }}>
-                 <Ionicons name="settings-outline" size={11} color="#7C3AED" style={{ marginRight: 3 }} />
-                 <Text style={{ color: "#7C3AED", fontSize: 11, fontWeight: "700" }}>Enable</Text>
-               </TouchableOpacity>
-            )} */}
           </View>
         </View>
         <TouchableOpacity onPress={goToProfile} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" }} activeOpacity={0.8}>

@@ -99,3 +99,15 @@ export async function showLocalOrderNotification(orderTotal: number, orderId: st
     },
   });
 }
+
+export async function showLocalDeliveryNotification(orderId: string) {
+  await notifee.displayNotification({
+    title: '📦 Order Delivered!',
+    body: 'Your order has been delivered. Enjoy your items!',
+    data: { type: 'order', orderId },
+    android: {
+      channelId: CHANNEL_ORDERS,
+      pressAction: { id: 'default' },
+    },
+  });
+}

@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Linking, AppState, AppStateStatus, PermissionsAndroid } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LOCATION_ASKED_KEY = 'location_permission_asked';
 
 let _locationInitialized = false;
 
@@ -98,7 +101,8 @@ async function checkAndroidPermission(): Promise<{ status: string; canAskAgain: 
     const granted = await PermissionsAndroid.check(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     );
-    return { status: granted ? 'granted' : 'denied', canAskAgain: !granted };
+    // canAskAgain is unknown from a check() alone — resolved properly in requestAndroidPermission
+    return { status: granted ? 'granted' : 'denied', canAskAgain: true };
   } catch {
     return { status: 'denied', canAskAgain: true };
   }
@@ -206,13 +210,33 @@ const useLocation = (): LocationHook => {
       if (_locationInitialized) return;
       _locationInitialized = true;
 
-      const { status, canAskAgain: askable } = await checkAndroidPermission();
+      const { status } = await checkAndroidPermission();
       if (!isMounted) return;
 
-      setPermissionStatus(status);
-      setCanAskAgain(askable);
-
       if (status === 'granted') {
+        setPermissionStatus('granted');
+        setCanAskAgain(true);
+        await getLocation();
+        return;
+      }
+
+      // Only ask once — if we've already asked before and the user denied, don't ask again
+      const alreadyAsked = await AsyncStorage.getItem(LOCATION_ASKED_KEY);
+      if (alreadyAsked) {
+        setPermissionStatus('denied');
+        setCanAskAgain(false);
+        setAddress('Location unavailable');
+        setLoading(false);
+        return;
+      }
+
+      // First time asking — show the dialog and remember that we asked
+      await AsyncStorage.setItem(LOCATION_ASKED_KEY, '1');
+      const { status: reqStatus, canAskAgain: askable } = await requestAndroidPermission();
+      if (!isMounted) return;
+      setPermissionStatus(reqStatus);
+      setCanAskAgain(askable);
+      if (reqStatus === 'granted') {
         await getLocation();
       } else {
         setAddress('Location unavailable');

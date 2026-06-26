@@ -9,6 +9,7 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
+import ShareProductSheet from '../components/ShareProductSheet';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -77,6 +78,7 @@ export default function ProductDetails() {
 
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
 
   useEffect(() => {
     if (product.stock > 0) return;
@@ -159,18 +161,25 @@ export default function ProductDetails() {
     };
   });
 
+  const handleShare = () => setShareVisible(true);
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-      
+
       {/* Top Navbar Header Component */}
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={ZEPTO_TEXT_DARK} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.rightHeaderAction} onPress={() => navigation.navigate('SearchResults')}>
-          <Feather name="search" size={22} color={ZEPTO_TEXT_DARK} />
-        </TouchableOpacity>
+        <View style={styles.headerRightRow}>
+          <TouchableOpacity style={styles.rightHeaderAction} onPress={handleShare}>
+            <Feather name="share-2" size={22} color={ZEPTO_TEXT_DARK} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.rightHeaderAction} onPress={() => navigation.navigate('SearchResults')}>
+            <Feather name="search" size={22} color={ZEPTO_TEXT_DARK} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -328,6 +337,14 @@ export default function ProductDetails() {
 
         </View>
       </View>
+      <ShareProductSheet
+        visible={shareVisible}
+        onClose={() => setShareVisible(false)}
+        productId={product.id}
+        productName={product.name}
+        productPrice={product.price}
+        category={(product as any).category}
+      />
     </SafeAreaView>
   );
 }
@@ -349,6 +366,11 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 4,
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   rightHeaderAction: {
     padding: 4,

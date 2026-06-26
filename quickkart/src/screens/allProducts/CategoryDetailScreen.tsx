@@ -396,11 +396,11 @@ export default function CategoryDetailScreen() {
         product={item}
         cardWidth={cardWidth}
         onPress={() =>
-          navigation.navigate('ProductDetails', { productJson: JSON.stringify(item) })
+          navigation.navigate('ProductDetails', { productJson: JSON.stringify({ ...item, category }) })
         }
       />
     ),
-    [cardWidth, router]
+    [cardWidth, navigation]
   );
 
   const ListHeader = useMemo(
@@ -427,7 +427,7 @@ export default function CategoryDetailScreen() {
           <TouchableOpacity
             hitSlop={8}
             style={{ marginLeft: 14 }}
-            onPress={() => navigation.navigate('SearchResults')}
+            onPress={() => navigation.navigate('SearchResults', { query: undefined })}
           >
             <Ionicons name="search-outline" size={24} color="#111" />
           </TouchableOpacity>

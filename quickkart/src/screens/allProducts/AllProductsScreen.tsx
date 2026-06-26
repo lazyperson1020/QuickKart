@@ -258,7 +258,7 @@ export default function AllCategoriesScreen() {
         navigation.navigate('SearchResults', { query: item.searchQuery });
       }
     },
-    [router]
+    [navigation]
   );
 
   const totalW = width - HORIZONTAL_PADDING * 2;
@@ -352,7 +352,7 @@ export default function AllCategoriesScreen() {
           <TouchableOpacity hitSlop={8} onPress={() => navigation.navigate('Wishlist')}>
             <Ionicons name="heart-outline" size={24} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity hitSlop={8} style={{ marginLeft: 16 }} onPress={() => navigation.navigate('SearchResults')}>
+          <TouchableOpacity hitSlop={8} style={{ marginLeft: 16 }} onPress={() => navigation.navigate('SearchResults', { query: undefined })}>
             <Ionicons name="search-outline" size={24} color="#111" />
           </TouchableOpacity>
         </View>

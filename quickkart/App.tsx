@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, StatusBar, PermissionsAndroid, Platform } from 'react-native';
+import { Text, StatusBar, PermissionsAndroid, Platform, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,6 +22,8 @@ import {
 } from './src/services/notificationService';
 import BackgroundFetch from 'react-native-background-fetch';
 import { runStockCheck } from './src/utils/stockCheckTask';
+import { checkPendingDeliveries } from './src/utils/orderDeliveryTask';
+import { handleDeepLink } from './src/utils/deepLinkHandler';
 import { auth } from './firebase.native';
 
 async function handleFcmNotificationTap(
@@ -77,6 +79,15 @@ export default function App() {
     }
   }, [navReady]);
 
+  // Deep link: app was killed, opened via quickkart:// URL
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+    const sub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     SplashScreen.hide();
 
@@ -91,6 +102,8 @@ export default function App() {
     setupNotificationChannels();
     const unsubscribeForeground = setupForegroundHandler();
 
+    checkPendingDeliveries();
+
     BackgroundFetch.configure(
       {
         minimumFetchInterval: 15,   // minutes — Android enforces 15 min minimum
@@ -101,6 +114,7 @@ export default function App() {
       },
       async (taskId) => {
         await runStockCheck();
+        await checkPendingDeliveries();
         BackgroundFetch.finish(taskId);
       },
       (taskId) => {

@@ -15,6 +15,7 @@ import Toast from 'react-native-toast-message';
 import { collection, onSnapshot, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase.native';
 import { showLocalOrderNotification } from '../services/notificationService';
+import { scheduleCodDelivery } from '../utils/orderDeliveryTask';
 import { decrementQuantity, incrementQuantity, CartItem } from '../redux/cartSlice';
 import { RootState } from '../redux/store';
 import { dismissOfferModal } from '../redux/couponSlice';
@@ -170,6 +171,9 @@ export default function Cart() {
       const orderRef = await addDoc(collection(db, 'users', user.uid, 'previousOrders'), orderData);
       await addDoc(collection(db, 'orders'), orderData);
       await showLocalOrderNotification(totalToPay, orderRef.id);
+      if (paymentMethod === 'cod') {
+        scheduleCodDelivery(orderRef.id, user.uid);
+      }
       dispatch(clearCart());
       navigation.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'OrderPlaced' }] });
     } catch (e) {

@@ -68,11 +68,18 @@
       "Bash(sips -z 72 72 /Users/arnavshah/Desktop/BB-updated/quickkart/assets/quickkart-icon-v2.png --out /Users/arnavshah/Desktop/BB-updated/quickkart/android/app/src/main/res/mipmap-hdpi/ic_launcher.png)",
       "Bash(sips -z 72 72 /Users/arnavshah/Desktop/BB-updated/quickkart/assets/quickkart-icon-v2.png --out /Users/arnavshah/Desktop/BB-updated/quickkart/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png)",
       "Bash(sips -z 96 96 /Users/arnavshah/Desktop/BB-updated/quickkart/assets/quickkart-icon-v2.png --out /Users/arnavshah/Desktop/BB-updated/quickkart/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png)",
-      "Bash(./gradlew assembleRelease --no-daemon)"
+      "Bash(./gradlew assembleRelease --no-daemon)",
+      "Bash(awk -F: '{print $1\":\"$2}')",
+      "Bash(mkdir -p /Users/arnavshah/Desktop/BB-updated/quickkart/android/app/src/main/res/xml)",
+      "Bash(./gradlew app:processDebugResources --stacktrace)",
+      "Bash(python3 -m json.tool)",
+      "Bash(./gradlew assembleRelease)",
+      "WebSearch"
     ],
     "additionalDirectories": [
       "/Users/arnavshah/.gradle/caches/8.14.3/transforms",
-      "/Users/arnavshah/.gradle/caches"
+      "/Users/arnavshah/.gradle/caches",
+      "/Users/arnavshah/Desktop/BB-updated/quickkart/android/app/src/main/res"
     ]
   }
 }
