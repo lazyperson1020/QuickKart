@@ -1,0 +1,104 @@
+# OSX
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.yarn-integrity
+
+# React Native
+.expo/
+.expo-shared/
+*.orig.*
+web-build/
+
+# Android
+quickkart/android/app/build/
+quickkart/android/build/
+quickkart/android/.gradle/
+quickkart/android/local.properties
+quickkart/android/captures/
+quickkart/android/.externalNativeBuild/
+quickkart/android/.cxx/
+quickkart/android/app/release/
+quickkart/android/keystores/
+
+# iOS
+quickkart/ios/build/
+quickkart/ios/Pods/
+quickkart/ios/DerivedData/
+quickkart/ios/*.xcworkspace/xcuserdata/
+quickkart/ios/*.xcodeproj/xcuserdata/
+quickkart/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Fastlane
+quickkart/fastlane/report.xml
+quickkart/fastlane/Preview.html
+quickkart/fastlane/screenshots/**/*.png
+quickkart/fastlane/test_output
+
+# Firebase
+quickkart/serviceAccountKey.json
+quickkart/google-services.json
+quickkart/GoogleService-Info.plist
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+pubsub-debug.log
+ui-debug.log
+.firebase/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Secrets / Keys
+*.pem
+*.p12
+*.keystore
+*.jks
+
+# TypeScript
+*.tsbuildinfo
+
+# Jest
+coverage/
+
+# Buck
+quickkart/android/.buckd/
+quickkart/android/app/libs/
+quickkart/android/app/src/main/res/drawable-hdpi/
+quickkart/android/app/src/main/res/drawable-mdpi/
+quickkart/android/app/src/main/res/drawable-xhdpi/
+quickkart/android/app/src/main/res/drawable-xxhdpi/
+quickkart/android/app/src/main/res/drawable-xxxhdpi/
+quickkart/android/app/src/main/res/raw/
+
+# Gradle wrapper (optional — keep if you want reproducible builds)
+# quickkart/android/gradle/wrapper/gradle-wrapper.jar
+
+# Metro bundler cache
+.metro-health-check*
+quickkart/.metro-bundler/
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
