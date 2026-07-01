@@ -20,11 +20,13 @@ import ProductGridCard from '../../components/ProductGridCard';
 import { auth } from '../../../firebase.native';
 import { removeFromWishlistFirestore } from '../../utils/wishlistFirestore';
 import FloatingCartPanel, { useCartPanelScrollHandler } from '../../components/FloatingCartPanel';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function WishlistPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const wishlist = useSelector((state: RootState) => state.wishlist);
 
@@ -59,7 +61,7 @@ export default function WishlistPage() {
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wishlist</Text>
+        <Text style={styles.headerTitle}>{t.wishlist.headerTitle}</Text>
         <TouchableOpacity hitSlop={8} onPress={() => navigation.navigate('SearchResults')}>
           <Ionicons name="search-outline" size={24} color="#111" />
         </TouchableOpacity>
@@ -90,9 +92,9 @@ export default function WishlistPage() {
       {wishlist.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="heart-outline" size={64} color="#e91e63" />
-          <Text style={styles.emptyTitle}>Your wishlist is empty</Text>
+          <Text style={styles.emptyTitle}>{t.wishlist.emptyTitle}</Text>
           <Text style={styles.emptySubtitle}>
-            Tap the heart on any product to save it here
+            {t.wishlist.emptySubtitle}
           </Text>
         </View>
       ) : (

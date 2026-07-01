@@ -34,9 +34,12 @@ async function syncProducts() {
         stock: product.stock !== undefined ? Number(product.stock) : 0,
         weight: product.weight ? String(product.weight).trim() : "",
         imageUrl: product.imageUrl ? String(product.imageUrl).trim() : "",
+        imageUrl1: product.imageUrl1 ? String(product.imageUrl1).trim() : "",
+        imageUrl2: product.imageUrl2 ? String(product.imageUrl2).trim() : "",
         position: product.position !== undefined ? Number(product.position) : 0,
         brand: product.brand ? String(product.brand).trim() : "Generic",
         subCategory: product.subCategory ? String(product.subCategory).trim() : "",
+        description: product.description ? String(product.description).trim() : "",
       };
 
       const existing = await db

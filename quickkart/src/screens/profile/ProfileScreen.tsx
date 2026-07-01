@@ -13,18 +13,26 @@ import { doc, onSnapshot, collection } from "firebase/firestore";
 import { auth, db } from "../../../firebase.native";
 import ProfileElementCard from "./ProfileElementCard";
 import BottomSheet from "../../components/BottomSheet";
+import { useTranslation } from "../../localization/LanguageContext";
 
 const PURPLE = "#7E57C2";
 const PINK = "#E91E8C";
 
+const LANGUAGE_OPTIONS = [
+  { code: "en" as const, label: "English" },
+  { code: "hi" as const, label: "हिंदी" },
+];
+
 const ProfilePage = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t, language, setLanguage } = useTranslation();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [loading, setLoading] = useState(true);
   const [addressCount, setAddressCount] = useState(0);
   const [showSuggestSheet, setShowSuggestSheet] = useState(false);
   const [suggestText, setSuggestText] = useState("");
+  const [showLanguageSheet, setShowLanguageSheet] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -40,7 +48,7 @@ const ProfilePage = () => {
         }
         setLoading(false);
       },
-      () => { Alert.alert("Error", "Failed to load profile"); setLoading(false); }
+      () => { Alert.alert(t.profile.errorTitle, t.profile.failedToLoadProfile); setLoading(false); }
     );
 
     const unsubAddresses = onSnapshot(
@@ -53,12 +61,12 @@ const ProfilePage = () => {
   }, []);
 
   const logout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t.profile.logOutTitle, t.profile.logOutConfirm, [
+      { text: t.common.cancel, style: "cancel" },
       {
-        text: "Log Out", style: "destructive", onPress: async () => {
+        text: t.profile.logOutTitle, style: "destructive", onPress: async () => {
           try { await signOut(auth); }
-          catch { Alert.alert("Error", "Logout failed"); }
+          catch { Alert.alert(t.profile.errorTitle, t.profile.logoutFailed); }
         },
       },
     ]);
@@ -66,7 +74,7 @@ const ProfilePage = () => {
 
   const handleSendSuggestion = () => {
     if (!suggestText.trim()) return;
-    Alert.alert("Thank you!", "Your suggestion has been received.");
+    Alert.alert(t.profile.suggestionThanksTitle, t.profile.suggestionThanksMessage);
     setSuggestText("");
     setShowSuggestSheet(false);
   };
@@ -78,7 +86,7 @@ const ProfilePage = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t.profile.headerTitle}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -102,9 +110,9 @@ const ProfilePage = () => {
 
         {/* Quick actions */}
         <View style={styles.quickRow}>
-          <QuickAction icon="bag-outline" label={"Your\nOrders"} onPress={() => navigation.navigate('PreviousOrders')} />
-          <QuickAction icon="chatbubble-ellipses-outline" label={"Help &\nSupport"} onPress={() => navigation.navigate('HelpSupport')} />
-          <QuickAction icon="heart-outline" label={"Your\nWishlist"} onPress={() => navigation.navigate('Wishlist')} />
+          <QuickAction icon="bag-outline" label={t.profile.yourOrders} onPress={() => navigation.navigate('PreviousOrders')} />
+          <QuickAction icon="chatbubble-ellipses-outline" label={t.profile.helpAndSupport} onPress={() => navigation.navigate('HelpSupport')} />
+          <QuickAction icon="heart-outline" label={t.profile.yourWishlist} onPress={() => navigation.navigate('Wishlist')} />
         </View>
 
         {/*  Cash & Gift Card */}
@@ -129,37 +137,43 @@ const ProfilePage = () => {
         </View> */}
 
         {/* Your Information */}
-        <Text style={styles.sectionLabel}>Your Information</Text>
+        <Text style={styles.sectionLabel}>{t.profile.yourInformation}</Text>
         <View style={styles.listCard}>
-          <ProfileElementCard title="Your Refunds" icon="cash-outline" onPress={() => navigation.navigate('Refunds')} />
-          <ProfileElementCard title="Your Wishlist" icon="heart-outline" onPress={() => navigation.navigate('Wishlist')} />
-          <ProfileElementCard title="E-Gift Cards" icon="card-outline" onPress={() => Alert.alert("E-Gift Cards", "Coming soon!")} />
-          <ProfileElementCard title="Help & Support" icon="chatbubble-ellipses-outline" onPress={() => navigation.navigate('HelpSupport')} />
+          <ProfileElementCard title={t.profile.yourRefunds} icon="cash-outline" onPress={() => navigation.navigate('Refunds')} />
+          <ProfileElementCard title={t.profile.yourWishlistTitle} icon="heart-outline" onPress={() => navigation.navigate('Wishlist')} />
+          <ProfileElementCard title={t.profile.eGiftCards} icon="card-outline" onPress={() => Alert.alert(t.profile.eGiftCards, t.profile.comingSoon)} />
+          <ProfileElementCard title={t.profile.helpAndSupportTitle} icon="chatbubble-ellipses-outline" onPress={() => navigation.navigate('HelpSupport')} />
         </View>
 
         {/* Account */}
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Account</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>{t.profile.account}</Text>
         <View style={styles.listCard}>
           <ProfileElementCard
-            title="Saved Addresses"
+            title={t.profile.savedAddresses}
             icon="location-outline"
-            subtitle={`${addressCount} Address${addressCount !== 1 ? "es" : ""}`}
+            subtitle={t.profile.addressesCount(addressCount)}
             onPress={() => navigation.navigate('AddressList')}
           />
-          <ProfileElementCard title="Edit Profile" icon="person-circle-outline" onPress={() => navigation.navigate('ProfileEdit')} />
-          <ProfileElementCard title="Manage Payments" icon="card-outline" onPress={() => navigation.navigate('ManagePayments')} />
-          <ProfileElementCard title="Rewards" icon="gift-outline" onPress={() => navigation.navigate('Rewards')} />
+          <ProfileElementCard title={t.profile.editProfile} icon="person-circle-outline" onPress={() => navigation.navigate('ProfileEdit')} />
+          <ProfileElementCard title={t.profile.managePayments} icon="card-outline" onPress={() => navigation.navigate('ManagePayments')} />
+          <ProfileElementCard title={t.profile.rewards} icon="gift-outline" onPress={() => navigation.navigate('Rewards')} />
         </View>
 
         {/* Other */}
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Other</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>{t.profile.other}</Text>
         <View style={styles.listCard}>
-          <ProfileElementCard title="Suggest Products" icon="star-outline" onPress={() => setShowSuggestSheet(true)} />
-          <ProfileElementCard title="Policies" icon="document-text-outline" onPress={() => navigation.navigate('Policy')} />
+          <ProfileElementCard title={t.profile.suggestProducts} icon="star-outline" onPress={() => setShowSuggestSheet(true)} />
+          <ProfileElementCard title={t.profile.policies} icon="document-text-outline" onPress={() => navigation.navigate('Policy')} />
+          <ProfileElementCard
+            title={t.profile.language}
+            icon="language-outline"
+            subtitle={LANGUAGE_OPTIONS.find((opt) => opt.code === language)?.label}
+            onPress={() => setShowLanguageSheet(true)}
+          />
         </View>
 
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>{t.profile.logOutButton}</Text>
         </TouchableOpacity>
 
         <View style={{ alignItems: "center", marginTop: 16, marginBottom: 30 }}>
@@ -180,14 +194,14 @@ const ProfilePage = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sheetTitle}>Suggest Products</Text>
+        <Text style={styles.sheetTitle}>{t.profile.suggestProducts}</Text>
         <Text style={styles.sheetSub}>
-          Didn't find what you are looking for? Please suggest the products
+          {t.profile.suggestSheetSub}
         </Text>
 
         <TextInput
           style={styles.sheetInput}
-          placeholder="Enter the name of the products you would like to see on Zepto."
+          placeholder={t.profile.suggestPlaceholder}
           placeholderTextColor="#B0A8C8"
           multiline
           textAlignVertical="top"
@@ -204,9 +218,44 @@ const ProfilePage = () => {
           onPress={handleSendSuggestion}
         >
           <Text style={[styles.sendBtnText, { color: suggestText.trim() ? "#fff" : "#E8A0C0" }]}>
-            Send
+            {t.profile.send}
           </Text>
         </TouchableOpacity>
+      </BottomSheet>
+
+      {/* Language Selection Bottom Sheet */}
+      <BottomSheet
+        visible={showLanguageSheet}
+        onClose={() => setShowLanguageSheet(false)}
+        height={320}
+      >
+        <View style={styles.sheetHeader}>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.sheetClose} onPress={() => setShowLanguageSheet(false)}>
+            <Ionicons name="close" size={20} color="#555" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sheetTitle}>{t.profile.selectLanguage}</Text>
+
+        <View style={styles.listCard}>
+          {LANGUAGE_OPTIONS.map((opt, index) => (
+            <TouchableOpacity
+              key={opt.code}
+              style={[styles.languageRow, index === LANGUAGE_OPTIONS.length - 1 && { borderBottomWidth: 0 }]}
+              activeOpacity={0.7}
+              onPress={() => {
+                setLanguage(opt.code);
+                setShowLanguageSheet(false);
+              }}
+            >
+              <Text style={styles.languageRowText}>{opt.label}</Text>
+              {language === opt.code && (
+                <Ionicons name="checkmark-circle" size={22} color={PINK} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
       </BottomSheet>
     </SafeAreaView>
   );
@@ -288,6 +337,13 @@ const styles = StyleSheet.create({
     borderRadius: 14, paddingVertical: 16, alignItems: "center",
   },
   sendBtnText: { fontSize: 16, fontWeight: "700" },
+
+  languageRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 18,
+    borderBottomWidth: 1, borderBottomColor: "#F1F1F1",
+  },
+  languageRowText: { fontSize: 16, fontWeight: "500", color: "#111" },
 });
 
 export default ProfilePage;

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import { useTranslation } from '../../localization/LanguageContext';
 
 interface Address { id: string; label: string; address: string; }
 
@@ -26,10 +27,11 @@ function getIcon(label: string): React.ComponentProps<typeof Ionicons>['name'] {
 }
 
 export default function AddressSelector({ addresses, selectedId, onSelect, onClose, onAddNew, onDelete }: Props) {
+  const { t } = useTranslation();
   const confirmDelete = (id: string) => {
-    Alert.alert('Delete Address', 'Are you sure you want to delete this address?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => onDelete?.(id) },
+    Alert.alert(t.addressSelector.deleteAddressTitle, t.addressSelector.deleteAddressMessage, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.addressSelector.delete, style: 'destructive', onPress: () => onDelete?.(id) },
     ]);
   };
 
@@ -37,7 +39,7 @@ export default function AddressSelector({ addresses, selectedId, onSelect, onClo
     <View style={{ flex: 1 }}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Select Address</Text>
+        <Text style={styles.title}>{t.addressSelector.selectAddress}</Text>
         <TouchableOpacity onPress={onClose} hitSlop={10}>
           <AntDesign name="close" size={22} color="#111" />
         </TouchableOpacity>
@@ -47,7 +49,7 @@ export default function AddressSelector({ addresses, selectedId, onSelect, onClo
       <TouchableOpacity style={styles.addBtn} onPress={onAddNew} activeOpacity={0.7}>
         <View style={styles.addLeft}>
           <AntDesign name="plus" size={18} color="#e91e63" />
-          <Text style={styles.addText}>Add New Address</Text>
+          <Text style={styles.addText}>{t.addressSelector.addNewAddress}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color="#888" />
       </TouchableOpacity>
@@ -55,7 +57,7 @@ export default function AddressSelector({ addresses, selectedId, onSelect, onClo
       {/* Saved Addresses */}
       {addresses.length > 0 && (
         <>
-          <Text style={styles.sectionLabel}>Saved Addresses</Text>
+          <Text style={styles.sectionLabel}>{t.addressSelector.savedAddresses}</Text>
           <FlatList
             data={addresses}
             keyExtractor={item => item.id}
@@ -77,7 +79,7 @@ export default function AddressSelector({ addresses, selectedId, onSelect, onClo
                         <Text style={styles.cardLabel}>{item.label}</Text>
                         {isSelected && (
                           <View style={styles.badge}>
-                            <Text style={styles.badgeText}>Selected</Text>
+                            <Text style={styles.badgeText}>{t.addressSelector.selected}</Text>
                           </View>
                         )}
                       </View>

@@ -54,6 +54,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from "../../firebase.native";
+import { useTranslation } from '../localization/LanguageContext';
 
 interface Banner { id: string; imageUrl: string; position: number; }
 
@@ -63,6 +64,7 @@ const ITEM_SPACING = 12;
 const BANNER_WIDTH = SCREEN_WIDTH - (CONTAINER_PADDING * 2);
 
 export default function BannerRail() {
+  const { t } = useTranslation();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function BannerRail() {
         setLoading(false);
       },
       (err: any) => {
-        setError(err?.message ?? 'Failed to load banners');
+        setError(err?.message ?? t.banners.failedToLoad);
         setLoading(false);
       }
     );

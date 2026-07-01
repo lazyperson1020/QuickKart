@@ -39,6 +39,18 @@ import RewardsScreen from '../screens/profile/RewardsScreen';
 import PolicyScreen from '../screens/profile/PolicyScreen';
 import RefundsScreen from '../screens/profile/RefundsScreen';
 import HelpSupportScreen from '../screens/profile/HelpSupportScreen';
+import GeneralInquiryScreen from '../screens/profile/GeneralInquiryScreen';
+import PaymentRelatedScreen from '../screens/profile/PaymentRelatedScreen';
+import FeedbackSuggestionsScreen from '../screens/profile/FeedbackSuggestionsScreen';
+import OrderProductsRelatedScreen from '../screens/profile/OrderProductsRelatedScreen';
+import GiftCardScreen from '../screens/profile/GiftCardScreen';
+import NoCostEMIScreen from '../screens/profile/NoCostEMIScreen';
+import WalletRelatedScreen from '../screens/profile/WalletRelatedScreen';
+import QuickkartClubScreen from '../screens/profile/QuickkartClubScreen';
+import ReferralScreen from '../screens/profile/ReferralScreen';
+import CocaColaCampaignScreen from '../screens/profile/CocaColaCampaignScreen';
+import FaqDetailScreen from '../screens/profile/FaqDetailScreen';
+import FaqCategoryScreen from '../screens/profile/FaqCategoryScreen';
 import ManagePaymentsScreen from '../screens/profile/ManagePaymentsScreen';
 import AddressListScreen from '../screens/address/AddressListScreen';
 import AddressAddScreen from '../screens/address/AddressAddScreen';
@@ -104,6 +116,18 @@ export default function RootNavigator() {
             <Stack.Screen name="Policy" component={PolicyScreen} />
             <Stack.Screen name="Refunds" component={RefundsScreen} />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <Stack.Screen name="FaqCategory" component={FaqCategoryScreen} />
+            <Stack.Screen name="GeneralInquiry" component={GeneralInquiryScreen} />
+            <Stack.Screen name="PaymentRelated" component={PaymentRelatedScreen} />
+            <Stack.Screen name="FeedbackSuggestions" component={FeedbackSuggestionsScreen} />
+            <Stack.Screen name="OrderProductsRelated" component={OrderProductsRelatedScreen} />
+            <Stack.Screen name="GiftCard" component={GiftCardScreen} />
+            <Stack.Screen name="NoCostEMI" component={NoCostEMIScreen} />
+            <Stack.Screen name="WalletRelated" component={WalletRelatedScreen} />
+            <Stack.Screen name="QuickkartClub" component={QuickkartClubScreen} />
+            <Stack.Screen name="Referral" component={ReferralScreen} />
+            <Stack.Screen name="CocaColaCampaign" component={CocaColaCampaignScreen} />
+            <Stack.Screen name="FaqDetail" component={FaqDetailScreen} />
             <Stack.Screen name="ManagePayments" component={ManagePaymentsScreen} />
             <Stack.Screen name="AddressList" component={AddressListScreen} />
             <Stack.Screen name="AddressAdd" component={AddressAddScreen} />

@@ -13,6 +13,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { setSelectedAddress } from "../../redux/addressSlice";
 import { RootState } from "../../redux/store";
 import { useSinglePress } from "../../hooks/useSinglePress";
+import { useTranslation } from "../../localization/LanguageContext";
 
 interface Address {
   id: string;
@@ -27,6 +28,7 @@ interface Address {
 }
 
 const AddressList = () => {
+  const { t } = useTranslation();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -77,7 +79,7 @@ const AddressList = () => {
         <TouchableOpacity onPress={goBack} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saved Addresses</Text>
+        <Text style={styles.headerTitle}>{t.addressList.headerTitle}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -101,7 +103,7 @@ const AddressList = () => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="location-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>No saved addresses</Text>
+              <Text style={styles.emptyText}>{t.addressList.noSavedAddresses}</Text>
             </View>
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: bottom + 24 }]}
@@ -111,7 +113,7 @@ const AddressList = () => {
               onPress={goToAddressAdd}
             >
               <AntDesign name="plus" size={18} color="#ff2d7a" />
-              <Text style={styles.addBtnText}>Add New Address</Text>
+              <Text style={styles.addBtnText}>{t.addressList.addNewAddress}</Text>
             </TouchableOpacity>
           }
         />

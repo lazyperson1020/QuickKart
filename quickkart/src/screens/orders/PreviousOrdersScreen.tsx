@@ -12,6 +12,7 @@ import PreviousOrdersCard, { OrderItem } from '../../components/previousOrdersCa
 import { useDispatch } from 'react-redux';
 import { addProduct } from '../../redux/cartSlice';
 import { useSinglePress } from '../../hooks/useSinglePress';
+import { useTranslation } from '../../localization/LanguageContext';
 
 interface Order {
   id: string;
@@ -23,6 +24,7 @@ interface Order {
 
 export default function PreviousOrdersScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function PreviousOrdersScreen() {
         <TouchableOpacity onPress={goBack} hitSlop={8} style={S.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Your Orders</Text>
+        <Text style={S.headerTitle}>{t.previousOrders.headerTitle}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -90,7 +92,7 @@ export default function PreviousOrdersScreen() {
           ListEmptyComponent={
             <View style={S.empty}>
               <Ionicons name="bag-outline" size={52} color="#CCC" />
-              <Text style={S.emptyText}>No orders yet</Text>
+              <Text style={S.emptyText}>{t.previousOrders.noOrdersYet}</Text>
             </View>
           }
         />

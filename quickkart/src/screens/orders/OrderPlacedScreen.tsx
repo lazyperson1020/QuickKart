@@ -4,9 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 export default function OrderPlacedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -29,8 +31,8 @@ export default function OrderPlacedScreen() {
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <Ionicons name="checkmark-circle" size={100} color="#2E7D32" />
       </Animated.View>
-      <Text style={S.title}>Order Placed!</Text>
-      <Text style={S.subtitle}>Your order has been confirmed{'\n'}and will be delivered soon.</Text>
+      <Text style={S.title}>{t.orderPlaced.title}</Text>
+      <Text style={S.subtitle}>{t.orderPlaced.subtitle}</Text>
     </View>
   );
 }

@@ -16,6 +16,7 @@ import ProductGridCard from '../components/ProductGridCard';
 import FloatingCartPanel from '../components/FloatingCartPanel';
 import ProductFilterSheet, { FilterOptions, DEFAULT_FILTERS } from '../components/ProductFilterSheet';
 import { globalBottomBarVisible } from '../navigation/tabBarShared';
+import { useTranslation } from '../localization/LanguageContext';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE_PAD = 12;
@@ -48,6 +49,7 @@ export default function CategoryProductsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryProducts'>>();
   const { category, subCategory } = route.params as { category: string; subCategory?: string };
+  const { t } = useTranslation();
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
@@ -98,15 +100,15 @@ export default function CategoryProductsScreen() {
   ].filter(Boolean).length;
 
   const sortLabel =
-    filters.sortBy === 'price_asc' ? 'Price ↑'
-    : filters.sortBy === 'price_desc' ? 'Price ↓'
-    : filters.sortBy === 'discount' ? 'Discount'
-    : 'Sort';
+    filters.sortBy === 'price_asc' ? t.categoryDetail.priceAsc
+    : filters.sortBy === 'price_desc' ? t.categoryDetail.priceDesc
+    : filters.sortBy === 'discount' ? t.categoryDetail.discount
+    : t.categoryDetail.sort;
 
   const ListHeader = (
     <View>
       <Text style={S.countText}>
-        {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+        {t.brandProducts.productsCount(filteredProducts.length)}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.chipScroll}>
         {/* Filter icon chip */}
@@ -133,7 +135,7 @@ export default function CategoryProductsScreen() {
           onPress={() => setFilterSheetVisible(true)}
         >
           <Text style={[S.chipText, filters.brands.length > 0 && S.chipTextActive]}>
-            {filters.brands.length > 0 ? `Brand (${filters.brands.length})` : 'Brand'}
+            {filters.brands.length > 0 ? t.categoryDetail.brandCount(filters.brands.length) : t.categoryDetail.brand}
           </Text>
           <Ionicons name="chevron-down" size={12} color={filters.brands.length > 0 ? '#e91e63' : '#666'} style={{ marginLeft: 2 }} />
         </TouchableOpacity>
@@ -150,7 +152,7 @@ export default function CategoryProductsScreen() {
           style={[S.chip, filters.offersOnly && S.chipActive]}
           onPress={() => setFilters(f => ({ ...f, offersOnly: !f.offersOnly }))}
         >
-          <Text style={[S.chipText, filters.offersOnly && S.chipTextActive]}>Offers</Text>
+          <Text style={[S.chipText, filters.offersOnly && S.chipTextActive]}>{t.categoryDetail.offers}</Text>
         </TouchableOpacity>
 
         {/* In Stock toggle */}
@@ -158,14 +160,14 @@ export default function CategoryProductsScreen() {
           style={[S.chip, filters.inStockOnly && S.chipActive]}
           onPress={() => setFilters(f => ({ ...f, inStockOnly: !f.inStockOnly }))}
         >
-          <Text style={[S.chipText, filters.inStockOnly && S.chipTextActive]}>In Stock</Text>
+          <Text style={[S.chipText, filters.inStockOnly && S.chipTextActive]}>{t.categoryDetail.inStock}</Text>
         </TouchableOpacity>
 
         {/* Clear all */}
         {activeFilterCount > 0 && (
           <TouchableOpacity style={S.clearChip} onPress={() => setFilters(DEFAULT_FILTERS)}>
             <Ionicons name="close" size={13} color="#e91e63" />
-            <Text style={S.clearChipText}>Clear</Text>
+            <Text style={S.clearChipText}>{t.categoryDetail.clear}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -188,8 +190,8 @@ export default function CategoryProductsScreen() {
         <ActivityIndicator size="large" color="#E91E8C" style={{ marginTop: 48 }} />
       ) : products.length === 0 ? (
         <View style={S.empty}>
-          <Text style={S.emptyTitle}>No products found</Text>
-          <Text style={S.emptySub}>We couldn't find any products in {screenTitle}.</Text>
+          <Text style={S.emptyTitle}>{t.brandProducts.noProductsFound}</Text>
+          <Text style={S.emptySub}>{t.categoryProducts.noProductsInCategory(screenTitle)}</Text>
         </View>
       ) : (
         <FlatList
@@ -203,8 +205,8 @@ export default function CategoryProductsScreen() {
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={
             <View style={S.empty}>
-              <Text style={S.emptyTitle}>No matches</Text>
-              <Text style={S.emptySub}>Try adjusting your filters.</Text>
+              <Text style={S.emptyTitle}>{t.categoryProducts.noMatches}</Text>
+              <Text style={S.emptySub}>{t.categoryProducts.tryAdjustingFilters}</Text>
             </View>
           }
           renderItem={({ item }) => (

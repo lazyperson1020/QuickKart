@@ -8,9 +8,11 @@ import { RootState } from '../../redux/store';
 import { removePaymentOffer } from '../../redux/couponSlice';
 import { useSinglePress } from '../../hooks/useSinglePress';
 import type { RootStackParamList } from '../../navigation/types';
+import { useTranslation } from '../../localization/LanguageContext';
 
 export default function CouponCard() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const appliedOffer = useSelector((state: RootState) => state.coupon.appliedPaymentOffer);
   const goToCoupons = useSinglePress(() => navigation.navigate('Coupons', { tab: 'coupons' }));
@@ -18,7 +20,7 @@ export default function CouponCard() {
 
   return (
     <View style={S.card}>
-      <Text style={S.title}>Coupons & offers</Text>
+      <Text style={S.title}>{t.couponCard.title}</Text>
 
       <TouchableOpacity
         style={S.row}
@@ -28,7 +30,7 @@ export default function CouponCard() {
         <View style={[S.iconBox, { backgroundColor: '#E8F5E9' }]}>
           <Ionicons name="pricetag-outline" size={18} color="#2e7d32" />
         </View>
-        <Text style={S.rowText}>View coupons</Text>
+        <Text style={S.rowText}>{t.couponCard.viewCoupons}</Text>
         <Ionicons name="chevron-forward" size={18} color="#999" />
       </TouchableOpacity>
 
@@ -47,7 +49,7 @@ export default function CouponCard() {
               activeOpacity={0.7}
               onPress={goToPayment}
             >
-              <Text style={S.viewAllText}>View all payment offers &gt;</Text>
+              <Text style={S.viewAllText}>{t.couponCard.viewAllPaymentOffers}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -55,7 +57,7 @@ export default function CouponCard() {
             onPress={() => dispatch(removePaymentOffer())}
             activeOpacity={0.8}
           >
-            <Text style={S.removeBtnText}>Remove</Text>
+            <Text style={S.removeBtnText}>{t.couponCard.remove}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -67,7 +69,7 @@ export default function CouponCard() {
           <View style={[S.iconBox, { backgroundColor: '#E3F2FD' }]}>
             <Ionicons name="card-outline" size={18} color="#1565C0" />
           </View>
-          <Text style={S.rowText}>View payment offers</Text>
+          <Text style={S.rowText}>{t.couponCard.viewPaymentOffers}</Text>
           <Ionicons name="chevron-forward" size={18} color="#999" />
         </TouchableOpacity>
       )}

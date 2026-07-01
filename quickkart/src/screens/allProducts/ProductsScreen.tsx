@@ -19,10 +19,12 @@ import { db } from '../../../firebase.native';
 import ProductGridCard from '../../components/ProductGridCard';
 import { GroceryProduct } from '../../components/productCard';
 import FloatingCartPanel, { useCartPanelScrollHandler } from '../../components/FloatingCartPanel';
+import { useTranslation } from '../../localization/LanguageContext';
 
 export default function AllProductsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Products'>>();
+  const { t } = useTranslation();
   const { category, categoryTitle } = route.params as {
     category: string;
     categoryTitle: string;
@@ -35,7 +37,7 @@ export default function AllProductsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
-  const title = categoryTitle || category || 'All Products';
+  const title = categoryTitle || category || t.products.defaultTitle;
 
   const scrollHandler = useCartPanelScrollHandler();
 
@@ -45,7 +47,7 @@ export default function AllProductsScreen() {
     const unsubscribers: (() => void)[] = [];
 
     if (!category || category === 'All') {
-      const cats = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+      const cats = ['Dairy', 'Fresh', 'Snacks', 'Electronics', 'Drinks', 'Grocery', 'Fashion', 'Beauty', 'Health', 'Household', 'Stores'];
       const catData: Record<string, GroceryProduct[]> = {};
 
       cats.forEach((cat) => {
@@ -64,7 +66,7 @@ export default function AllProductsScreen() {
               setLoading(false);
             }
           },
-          (err: any) => { setFetchError(err?.message ?? 'Failed to load products.'); setLoading(false); }
+          (err: any) => { setFetchError(err?.message ?? t.products.failedToLoadProducts); setLoading(false); }
         );
         unsubscribers.push(unsub);
       });
@@ -78,7 +80,7 @@ export default function AllProductsScreen() {
           setFiltered(items);
           setLoading(false);
         },
-        (err: any) => { setFetchError(err?.message ?? 'Failed to load products.'); setLoading(false); }
+        (err: any) => { setFetchError(err?.message ?? t.products.failedToLoadProducts); setLoading(false); }
       );
       unsubscribers.push(unsub);
     }
@@ -117,7 +119,7 @@ export default function AllProductsScreen() {
           <TextInput
             style={styles.searchInput}
             autoFocus
-            placeholder="Search products..."
+            placeholder={t.products.searchPlaceholder}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -143,7 +145,7 @@ export default function AllProductsScreen() {
       ) : fetchError ? (
         <Text style={styles.errorText}>{fetchError}</Text>
       ) : filtered.length === 0 ? (
-        <Text style={styles.emptyText}>No products found.</Text>
+        <Text style={styles.emptyText}>{t.products.noProductsFound}</Text>
       ) : (
         <Animated.FlatList
           data={filtered}

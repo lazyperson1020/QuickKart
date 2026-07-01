@@ -1,16 +1,18 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTranslation } from "../../localization/LanguageContext";
 
 const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
+  const { t } = useTranslation();
   const detailLine = [item.houseNo, item.apartment]
     .filter(Boolean)
     .join(", ");
 
   const confirmDelete = () => {
-    Alert.alert("Delete Address", "Are you sure you want to delete this address?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => onDelete?.(item.id) },
+    Alert.alert(t.addressSelector.deleteAddressTitle, t.addressSelector.deleteAddressMessage, [
+      { text: t.common.cancel, style: "cancel" },
+      { text: t.addressSelector.delete, style: "destructive", onPress: () => onDelete?.(item.id) },
     ]);
   };
 
@@ -47,7 +49,7 @@ const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
             }}
           >
             <Text style={{ fontSize: 11, color: "#ff2d7a", fontWeight: "700" }}>
-              Selected
+              {t.addressSelector.selected}
             </Text>
           </View>
         )}
@@ -62,7 +64,7 @@ const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
             }}
           >
             <Text style={{ fontSize: 11, color: "#2e7d32", fontWeight: "600" }}>
-              Default
+              {t.addressCard.default}
             </Text>
           </View>
         )}
@@ -81,7 +83,7 @@ const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
 
       {!!item.landmark && (
         <Text style={{ color: "#444", fontSize: 14, marginBottom: 2 }}>
-          Near {item.landmark}
+          {t.addressCard.nearLandmark(item.landmark)}
         </Text>
       )}
 
@@ -98,7 +100,7 @@ const AddressCard = ({ item, onEdit, onDelete, onSelect, isSelected }: any) => {
         }}
       >
         <Text style={{ marginTop: 12, color: "#ff2d7a", fontWeight: "600", fontSize: 14 }}>
-          Edit Address
+          {t.addressCard.editAddress}
         </Text>
       </TouchableOpacity>
     </TouchableOpacity>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import ProductRail from '../ProductRail';
 import { GroceryProduct } from '../productCard';
 
@@ -31,23 +31,7 @@ export default function DealsRail({
   if (!deals.length) return null;
 
   return (
-    <View
-      style={{
-        marginTop: 8,
-        marginBottom: 16,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 20,
-          fontWeight: '700',
-          marginHorizontal: 16,
-          marginBottom: 12,
-        }}
-      >
-        
-      </Text>
-
+    <View style={{ marginBottom: 16 }}>
       <ProductRail
         products={deals}
         onProductPress={onProductPress}

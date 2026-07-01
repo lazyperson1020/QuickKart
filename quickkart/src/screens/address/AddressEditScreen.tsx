@@ -18,12 +18,14 @@ import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../../navigation/types";
 import { auth, db } from "../../../firebase.native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "../../localization/LanguageContext";
 
 const AddressEdit = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'AddressEdit'>>();
   const { addressId } = route.params as { addressId: string };
   const { top, bottom } = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [type, setType] = useState("");
   const [houseNo, setHouseNo] = useState("");
@@ -87,7 +89,7 @@ const AddressEdit = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Address</Text>
+        <Text style={styles.headerTitle}>{t.addressForm.editAddressTitle}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -96,48 +98,48 @@ const AddressEdit = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.label}>Label (Home / Work / Other)</Text>
+        <Text style={styles.label}>{t.addressForm.labelField}</Text>
         <TextInput
           style={styles.input}
           value={type}
           onChangeText={setType}
-          placeholder="e.g. Home"
+          placeholder={t.addressForm.labelPlaceholder}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>House / Flat No.</Text>
+        <Text style={styles.label}>{t.addressForm.houseNoField}</Text>
         <TextInput
           style={styles.input}
           value={houseNo}
           onChangeText={setHouseNo}
-          placeholder="e.g. 42B"
+          placeholder={t.addressForm.houseNoPlaceholder}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Apartment / Society</Text>
+        <Text style={styles.label}>{t.addressForm.apartmentField}</Text>
         <TextInput
           style={styles.input}
           value={apartment}
           onChangeText={setApartment}
-          placeholder="e.g. Sunrise Apartments"
+          placeholder={t.addressForm.apartmentPlaceholder}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Landmark</Text>
+        <Text style={styles.label}>{t.addressForm.landmarkField}</Text>
         <TextInput
           style={styles.input}
           value={landmark}
           onChangeText={setLandmark}
-          placeholder="e.g. Near City Mall"
+          placeholder={t.addressForm.landmarkPlaceholder}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Full Address</Text>
+        <Text style={styles.label}>{t.addressForm.fullAddressField}</Text>
         <TextInput
           style={[styles.input, { height: 80, textAlignVertical: "top" }]}
           value={fullAddress}
           onChangeText={setFullAddress}
-          placeholder="Street, City, Pin code"
+          placeholder={t.addressForm.fullAddressPlaceholder}
           multiline
         />
 
@@ -147,7 +149,7 @@ const AddressEdit = () => {
           disabled={saving}
         >
           <Text style={styles.buttonText}>
-            {saving ? "Saving…" : "Save Address"}
+            {saving ? t.addressForm.saving : t.addressForm.saveAddress}
           </Text>
         </TouchableOpacity>
       </ScrollView>

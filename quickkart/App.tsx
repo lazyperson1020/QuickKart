@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import notifee, { EventType } from '@notifee/react-native';
 import { handleNotifeeData } from './src/utils/notifeeStockHandler';
 import { store, persistor } from './src/redux/store';
+import { LanguageProvider } from './src/localization/LanguageContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
 import {
@@ -151,13 +152,15 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <SafeAreaProvider>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-            <NavigationContainer ref={navigationRef} onReady={() => setNavReady(true)}>
-              <RootNavigator />
-            </NavigationContainer>
-            <Toast />
-          </SafeAreaProvider>
+          <LanguageProvider>
+            <SafeAreaProvider>
+              <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+              <NavigationContainer ref={navigationRef} onReady={() => setNavReady(true)}>
+                <RootNavigator />
+              </NavigationContainer>
+              <Toast />
+            </SafeAreaProvider>
+          </LanguageProvider>
         </PersistGate>
       </Provider>
     </GestureHandlerRootView>

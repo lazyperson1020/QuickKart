@@ -11,11 +11,13 @@ import type { RootStackParamList } from "../../navigation/types";
 import { deleteUser } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../../firebase.native";
+import { useTranslation } from "../../localization/LanguageContext";
 
 const PURPLE = "#35035C";
 
 export default function ProfileEditPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
@@ -35,7 +37,7 @@ export default function ProfileEditPage() {
           setEmail(d.email ?? user.email ?? "");
         }
       } catch {
-        Alert.alert("Error", "Failed to load profile");
+        Alert.alert(t.profile.errorTitle, t.profileEdit.failedToLoadProfile);
       } finally {
         setLoading(false);
       }
@@ -44,15 +46,15 @@ export default function ProfileEditPage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!name.trim()) { Alert.alert("Error", "Name cannot be empty"); return; }
+    if (!name.trim()) { Alert.alert(t.profile.errorTitle, t.profileEdit.nameEmpty); return; }
     setSaving(true);
     try {
       const user = auth.currentUser;
       if (!user) return;
       await updateDoc(doc(db, "users", user.uid), { name: name.trim(), contact: contact.trim() });
-      Alert.alert("Success", "Profile updated successfully");
+      Alert.alert(t.profileEdit.success, t.profileEdit.profileUpdated);
     } catch {
-      Alert.alert("Error", "Failed to update profile");
+      Alert.alert(t.profile.errorTitle, t.profileEdit.failedToUpdateProfile);
     } finally {
       setSaving(false);
     }
@@ -60,19 +62,19 @@ export default function ProfileEditPage() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete Account",
-      "Are you sure? This will permanently remove all your orders, wallet amount and any active referral codes.",
+      t.profileEdit.deleteAccountTitle,
+      t.profileEdit.deleteAccountConfirm,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t.common.cancel, style: "cancel" },
         {
-          text: "Delete", style: "destructive", onPress: async () => {
+          text: t.addressSelector.delete, style: "destructive", onPress: async () => {
             try {
               const user = auth.currentUser;
               if (!user) return;
               await deleteUser(user);
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             } catch (e: any) {
-              Alert.alert("Error", e.message ?? "Please sign out and sign back in before deleting your account.");
+              Alert.alert(t.profile.errorTitle, e.message ?? t.profileEdit.failedToDeleteAccount);
             }
           },
         },
@@ -95,27 +97,27 @@ export default function ProfileEditPage() {
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="chevron-back" size={24} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t.profileEdit.headerTitle}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
-          <Field label="Name *" value={name} onChange={setName} placeholder="Your name" />
+          <Field label={t.profileEdit.nameLabel} value={name} onChange={setName} placeholder={t.profileEdit.namePlaceholder} />
           <Field
-            label="Mobile Number *"
+            label={t.profileEdit.mobileLabel}
             value={contact}
             onChange={setContact}
-            placeholder="Mobile number"
+            placeholder={t.profileEdit.mobilePlaceholder}
             keyboardType="phone-pad"
           />
           <Field
-            label="Email Address *"
+            label={t.profileEdit.emailLabel}
             value={email}
             onChange={() => {}}
-            placeholder="Email address"
+            placeholder={t.profileEdit.emailPlaceholder}
             editable={false}
-            hint="We promise not to spam you"
+            hint={t.profileEdit.emailHint}
           />
 
           <TouchableOpacity
@@ -124,16 +126,16 @@ export default function ProfileEditPage() {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <Text style={styles.submitText}>{saving ? "Saving..." : "Submit"}</Text>
+            <Text style={styles.submitText}>{saving ? t.profileEdit.saving : t.profileEdit.submit}</Text>
           </TouchableOpacity>
 
           <View style={styles.divider} />
 
           <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.7}>
-            <Text style={styles.deleteTitle}>Delete Account</Text>
+            <Text style={styles.deleteTitle}>{t.profileEdit.deleteAccountTitle}</Text>
           </TouchableOpacity>
           <Text style={styles.deleteDesc}>
-            Deleting your account will remove all your orders, wallet amount and any active referral codes.
+            {t.profileEdit.deleteAccountDesc}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -13,16 +13,21 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../../../firebase.native';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { auth, db } from '../../../firebase.native';
 import { GroceryProduct } from '../../components/productCard';
+import { OrderItem } from '../../components/previousOrdersCard';
 import ProductRail from '../../components/ProductRail';
 import { useSinglePress } from '../../hooks/useSinglePress';
 import FloatingCartPanel from '../../components/FloatingCartPanel';
 import { globalBottomBarVisible } from '../../navigation/tabBarShared';
+import { useTranslation } from '../../localization/LanguageContext';
+import type { TranslationSchema } from '../../localization/strings';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE_PAD = 10;
@@ -31,28 +36,78 @@ const HEADER_INNER_H = 48;
 
 const PURPLE = '#7C3AED';
 const LIGHT_PURPLE = '#EDE9FE';
-const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics', 'Drinks', 'Grocery', 'Fashion', 'Beauty', 'Health', 'Household', 'Stores'];
 
-const FILTER_TABS = [
-  { key: 'all',         label: 'All Items',           emoji: '❤️' },
-  { key: 'Fresh',       label: 'Fruits &\nVegetables', emoji: '🥦' },
-  { key: 'Dairy',       label: 'Dairy\nProducts',      emoji: '🥛' },
-  { key: 'Snacks',      label: 'Snacks &\nDrinks',     emoji: '🍿' },
-  { key: 'Electronics', label: 'Grocery &\nKitchen',   emoji: '🏪' },
+const buildFilterTabs = (t: TranslationSchema) => [
+  { key: 'all',         label: t.buyAgain.filterTabs.all,         emoji: '❤️' },
+  { key: 'Fresh',       label: t.buyAgain.filterTabs.fresh,       emoji: '🥦' },
+  { key: 'Dairy',       label: t.buyAgain.filterTabs.dairy,       emoji: '🥛' },
+  { key: 'Snacks',      label: t.buyAgain.filterTabs.snacks,      emoji: '🍿' },
+  { key: 'Electronics', label: t.buyAgain.filterTabs.electronics, emoji: '🏪' },
 ];
 
 export default function BuyAgainScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const FILTER_TABS = useMemo(() => buildFilterTabs(t), [t]);
   const { top } = useSafeAreaInsets();
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [boughtProducts, setBoughtProducts] = useState<GroceryProduct[]>([]);
+  const [boughtLoading, setBoughtLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [categoryIconMap, setCategoryIconMap] = useState<Record<string, { type: string; name: string; color: string; iconUrl?: string }>>({});
 
   const scrollY = useSharedValue(0);
 
   useFocusEffect(useCallback(() => {
     globalBottomBarVisible.value = 1;
   }, []));
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'categoryPriority'),
+      (snap) => {
+        const map: Record<string, { type: string; name: string; color: string; iconUrl?: string }> = {};
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          map[doc.id] = {
+            type: data.iconType || 'material',
+            name: data.iconName || 'basket',
+            color: data.iconColor || '#35035C',
+            iconUrl: data.iconUrl || undefined,
+          };
+        });
+        setCategoryIconMap(map);
+      },
+      (err) => console.warn('Failed to fetch category icons:', err)
+    );
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) { setBoughtLoading(false); return; }
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'users', user.uid, 'previousOrders'), orderBy('createdAt', 'desc')),
+      (snap) => {
+        const seen = new Set<string>();
+        const items: GroceryProduct[] = [];
+        snap.docs.forEach(doc => {
+          (doc.data().items as OrderItem[] ?? []).forEach(item => {
+            if (!seen.has(item.id)) {
+              seen.add(item.id);
+              items.push({ ...item, stock: 99, description: '' } as GroceryProduct);
+            }
+          });
+        });
+        setBoughtProducts(items);
+        setBoughtLoading(false);
+      },
+      (e) => { console.error(e); setBoughtLoading(false); }
+    );
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const catData: Record<string, GroceryProduct[]> = {};
@@ -112,16 +167,16 @@ export default function BuyAgainScreen() {
     return { opacity, color: textColor };
   });
 
-  const filtered = useMemo(
-    () => activeCategory === 'all' ? products : products.filter(p => p.category === activeCategory),
-    [products, activeCategory]
+  const filteredBought = useMemo(
+    () => activeCategory === 'all' ? boughtProducts : boughtProducts.filter(p => p.category === activeCategory),
+    [boughtProducts, activeCategory]
   );
 
   const handleProductPress = useSinglePress(useCallback((item: GroceryProduct) => {
     navigation.navigate('ProductDetails', { productJson: JSON.stringify(item) });
   }, [navigation]));
   const goBack = useSinglePress(() => navigation.goBack());
-  const goToSearch = useSinglePress(() => navigation.navigate('SearchResults'));
+  const goToSearch = useSinglePress(() => navigation.navigate('SearchResults', {}));
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8F8F8' }}>
@@ -151,7 +206,7 @@ export default function BuyAgainScreen() {
           <Ionicons name="arrow-back" size={22} color={PURPLE} />
         </TouchableOpacity>
         
-        <Animated.Text style={[S.headerTitle, titleAnimStyle]}>Buy Again </Animated.Text>
+        <Animated.Text style={[S.headerTitle, titleAnimStyle]}>{t.buyAgain.headerTitle}</Animated.Text>
         
         <TouchableOpacity 
           style={S.iconTouchTarget}
@@ -163,63 +218,93 @@ export default function BuyAgainScreen() {
 
       {/* Content Engine Mount Frame */}
       <View style={{ flex: 1, marginTop: top + HEADER_INNER_H }}>
-        {loading ? (
-          <ActivityIndicator size="large" color={PURPLE} style={{ marginTop: 40 }} />
-        ) : (
-          <Animated.ScrollView
-            style={{ flex: 1 }}
-            onScroll={scrollHandler}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingTop: BANNER_HEIGHT - HEADER_INNER_H,
-              paddingBottom: 140,
-            }}
-          >
-            <View style={S.filterBarWrapper}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: SIDE_PAD, alignItems: 'center', gap: 10 }}
-              >
-                {FILTER_TABS.map(tab => {
-                  const active = activeCategory === tab.key;
-                  return (
-                    <TouchableOpacity
-                      key={tab.key}
-                      onPress={() => setActiveCategory(tab.key)}
-                      activeOpacity={0.8}
-                      style={S.chip}
-                    >
-                      <View style={[S.chipIcon, active && S.chipIconActive]}>
-                        <Text style={{ fontSize: 22 }}>{tab.emoji}</Text>
-                      </View>
-                      <Text style={[S.chipLabel, active && S.chipLabelActive]} numberOfLines={2}>
-                        {tab.label}
-                      </Text>
-                      {active && <View style={S.chipUnderline} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingTop: BANNER_HEIGHT - HEADER_INNER_H,
+            paddingBottom: 140,
+          }}
+        >
+          {/* Category Filter Chips */}
+          <View style={S.filterBarWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: SIDE_PAD, alignItems: 'center', gap: 10 }}
+            >
+              {FILTER_TABS.map(tab => {
+                const active = activeCategory === tab.key;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => setActiveCategory(tab.key)}
+                    activeOpacity={0.8}
+                    style={S.chip}
+                  >
+                    <View style={[S.chipIcon, active && S.chipIconActive]}>
+                      {(() => {
+                        const icon = tab.key !== 'all' ? categoryIconMap[tab.key] : undefined;
+                        const iconColor = active ? '#fff' : (icon?.color ?? '#35035C');
+                        if (!icon) return <Text style={{ fontSize: 22 }}>{tab.emoji}</Text>;
+                        if (icon.iconUrl) return <Image source={{ uri: icon.iconUrl }} style={{ width: 28, height: 28 }} resizeMode="contain" />;
+                        if (icon.type === 'fa6') return <FontAwesome6 name={icon.name} size={22} color={iconColor} />;
+                        return <MaterialCommunityIcons name={icon.name as any} size={26} color={iconColor} />;
+                      })()}
+                    </View>
+                    <Text style={[S.chipLabel, active && S.chipLabelActive]} numberOfLines={2}>
+                      {tab.label}
+                    </Text>
+                    {active && <View style={S.chipUnderline} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
 
-            {filtered.length === 0 ? (
-              <Text style={S.empty}>No products found.</Text>
+          {/* Buy Again Section */}
+          <View style={S.sectionBlock}>
+            <Text style={S.sectionHeading}>{t.buyAgain.buyAgainSection}</Text>
+            {boughtLoading ? (
+              <ActivityIndicator size="small" color={PURPLE} style={{ marginVertical: 20 }} />
+            ) : filteredBought.length === 0 ? (
+              <Text style={S.empty}>
+                {boughtProducts.length === 0
+                  ? t.buyAgain.noOrdersYet
+                  : t.buyAgain.noBoughtItemsInCategory}
+              </Text>
             ) : (
               <ProductRail
-                products={filtered}
+                products={filteredBought}
                 onProductPress={handleProductPress}
                 rows={2}
               />
             )}
+          </View>
 
-            <View style={S.tagline}>
-              <Text style={S.taglineText}>The place that fits all</Text>
-              <Text style={S.taglineText}>your needs</Text>
-            </View>
-          </Animated.ScrollView>
-        )}
+          {/* All Products Section */}
+          <View style={S.sectionBlock}>
+            <Text style={S.sectionHeading}>{t.buyAgain.allProducts}</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color={PURPLE} style={{ marginVertical: 20 }} />
+            ) : products.length === 0 ? (
+              <Text style={S.empty}>{t.buyAgain.noProductsAvailable}</Text>
+            ) : (
+              <ProductRail
+                products={products}
+                onProductPress={handleProductPress}
+                rows={2}
+              />
+            )}
+          </View>
+
+          <View style={S.tagline}>
+            <Text style={S.taglineText}>{t.buyAgain.taglineLine1}</Text>
+            <Text style={S.taglineText}>{t.buyAgain.taglineLine2}</Text>
+          </View>
+        </Animated.ScrollView>
       </View>
 
       <FloatingCartPanel noNavBar />
@@ -321,10 +406,24 @@ const S = StyleSheet.create({
     color: '#D0D0D0',
     lineHeight: 34,
   },
+  sectionBlock: {
+    marginTop: 8,
+    backgroundColor: '#fff',
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111',
+    paddingHorizontal: SIDE_PAD,
+    marginBottom: 12,
+  },
   empty: {
     textAlign: 'center',
     color: '#888',
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 20,
     fontSize: 14,
   },
 });

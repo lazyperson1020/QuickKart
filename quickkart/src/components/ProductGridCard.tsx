@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, Text, View, Image, Pressable, Dimensions } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -8,6 +8,7 @@ import { RootState } from '../redux/store';
 import { GroceryProduct } from './productCard';
 import Toast from 'react-native-toast-message';
 import { useSinglePress } from '../hooks/useSinglePress';
+import { useTranslation } from '../localization/LanguageContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = (SCREEN_WIDTH - 40) / 2; // 16px outer padding each side + 8px gap
@@ -18,12 +19,11 @@ interface ProductGridCardProps {
   cardWidth?: number;
 }
 
-export default function ProductGridCard({ product, onPress, cardWidth: widthProp }: ProductGridCardProps) {
+function ProductGridCardInner({ product, onPress, cardWidth: widthProp }: ProductGridCardProps) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
-  const cart = useSelector((state: RootState) => state.cart);
+  const cartItem = useSelector((state: RootState) => state.cart.find((item) => item.id === product.id));
   const resolvedWidth = widthProp ?? CARD_WIDTH;
-
-  const cartItem = cart.find((item) => item.id === product.id);
   const savings = (product.originalPrice || 0) - (product.price || 0);
   const isOutOfStock = product.stock <= 0;
 
@@ -31,8 +31,8 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
     Toast.show({
       type: 'error',
       text1: isOutOfStock
-        ? 'This item is out of stock'
-        : `Only ${product.stock} unit(s) available`,
+        ? t.productCard.outOfStock
+        : t.cart.onlyUnitsAvailable(product.stock),
       position: 'bottom',
     });
   };
@@ -50,13 +50,13 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
       <View style={[styles.imageWrapper, { width: resolvedWidth, height: Math.round(resolvedWidth * 0.76) }]}>
         {isOutOfStock && (
           <View style={styles.soldOutBadge}>
-            <Text style={styles.soldOutText}>Sold Out</Text>
+            <Text style={styles.soldOutText}>{t.stockBadge.soldOut}</Text>
           </View>
         )}
         <Image
           source={{ uri: product.imageUrl || 'https://via.placeholder.com/200' }}
           style={[styles.productImage, isOutOfStock && { opacity: 0.35 }]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
         {cartItem ? (
           <Pressable style={styles.quantityContainer} onPress={() => {}}>
@@ -79,14 +79,14 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
         ) : isOutOfStock ? (
           <Pressable style={styles.notifyButton} onPress={() => {}}>
             <Ionicons name="notifications-outline" size={16} color="#e91e63" />
-            <Text style={styles.notifyText}>Notify</Text>
+            <Text style={styles.notifyText}>{t.productCard.notify}</Text>
           </Pressable>
         ) : (
           <Pressable
             style={({ pressed }) => [styles.addButton, { opacity: pressed ? 0.7 : 1 }]}
             onPress={handleAdd}
           >
-            <Text style={styles.addButtonText}>ADD</Text>
+            <Text style={styles.addButtonText}>{t.productCard.add}</Text>
           </Pressable>
         )}
       </View>
@@ -102,7 +102,7 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
       </View>
 
       {savings > 0 && (
-        <Text style={styles.savingsText}>₹{savings} OFF</Text>
+        <Text style={styles.savingsText}>{t.productCard.offAmount(savings)}</Text>
       )}
 
       <Text style={styles.productName} numberOfLines={2}>
@@ -112,6 +112,8 @@ export default function ProductGridCard({ product, onPress, cardWidth: widthProp
     </Pressable>
   );
 }
+
+export default memo(ProductGridCardInner);
 
 const styles = StyleSheet.create({
   cardContainer: {

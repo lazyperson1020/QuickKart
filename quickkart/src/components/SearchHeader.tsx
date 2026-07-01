@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../localization/LanguageContext';
 
 interface SearchHeaderProps {
   value: string;
@@ -22,8 +23,10 @@ export default function SearchHeader({
   onBack,
   onSubmit,
   autoFocus = false,
-  placeholder = 'Search for products...',
+  placeholder,
 }: SearchHeaderProps) {
+  const { t } = useTranslation();
+  const displayPlaceholder = placeholder ?? t.searchHeader.defaultPlaceholder;
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function SearchHeader({
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={displayPlaceholder}
           placeholderTextColor="#999"
           returnKeyType="search"
           onSubmitEditing={() => onSubmit(value)}

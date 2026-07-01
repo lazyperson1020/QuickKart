@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from '../localization/LanguageContext';
 
 export default function OrderTrackingScreen() {
+  const { t } = useTranslation();
   return (
     <View style={s.container}>
-      <Text style={s.text}>Order Tracking</Text>
+      <Text style={s.text}>{t.orderTracking.title}</Text>
     </View>
   );
 }

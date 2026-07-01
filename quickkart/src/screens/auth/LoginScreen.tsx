@@ -10,6 +10,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { auth } from '../../../firebase.native';
 import { validateLogin } from '../../utils/validators';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PURPLE = '#35035C';
 const SALMON = '#E05832';
@@ -82,6 +83,7 @@ function FloatingLabelInput({
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -89,10 +91,10 @@ export default function LoginScreen() {
   const [formError, setFormError] = useState('');
 
   const handleLogin = async () => {
-    const validationError = validateLogin(email, password);
+    const validationError = validateLogin(email, password, t);
     setError(validationError || {});
     if (Object.keys(validationError || {}).length > 0) {
-      setFormError('Please fix the highlighted fields.');
+      setFormError(t.auth.pleaseFixFields);
       return;
     }
     setFormError('');
@@ -101,7 +103,7 @@ export default function LoginScreen() {
       await signInWithEmailAndPassword(auth, email, password);
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     } catch (e: any) {
-      setFormError(e.message || 'Login failed. Please try again.');
+      setFormError(e.message || t.auth.loginFailed);
     } finally {
       setLoading(false);
     }
@@ -122,13 +124,13 @@ export default function LoginScreen() {
         />
 
         {/* Heading */}
-        <Text style={s.heading}>Welcome to QuickKart</Text>
-        <Text style={s.subheading}>Please login to your account</Text>
+        <Text style={s.heading}>{t.auth.welcomeToQuickkart}</Text>
+        <Text style={s.subheading}>{t.auth.pleaseLoginToAccount}</Text>
 
         {/* Form */}
         <View style={s.form}>
           <FloatingLabelInput
-            label="Email"
+            label={t.auth.emailLabel}
             value={email}
             onChangeText={setEmail}
             error={error.email}
@@ -136,7 +138,7 @@ export default function LoginScreen() {
             autoCapitalize="none"
           />
           <FloatingLabelInput
-            label="Password"
+            label={t.auth.passwordLabel}
             value={password}
             onChangeText={setPassword}
             error={error.password}
@@ -153,14 +155,14 @@ export default function LoginScreen() {
           disabled={loading}
           activeOpacity={0.85}
         >
-          <Text style={s.btnText}>{loading ? 'Logging in...' : 'Login'}</Text>
+          <Text style={s.btnText}>{loading ? t.auth.loggingIn : t.auth.login}</Text>
         </TouchableOpacity>
 
         {/* Sign Up link */}
         <View style={s.footer}>
-          <Text style={s.footerText}>Don't have an account?</Text>
+          <Text style={s.footerText}>{t.auth.dontHaveAccount}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-            <Text style={s.footerLink}> Sign Up</Text>
+            <Text style={s.footerLink}>{t.auth.signUp}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

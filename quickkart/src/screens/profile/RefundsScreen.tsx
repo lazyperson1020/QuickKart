@@ -6,11 +6,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { TouchableOpacity } from 'react-native';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PINK = '#E91E8C';
 
 export default function RefundsPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={S.container}>
@@ -18,7 +20,7 @@ export default function RefundsPage() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Refunds</Text>
+        <Text style={S.headerTitle}>{t.refunds.headerTitle}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -26,9 +28,9 @@ export default function RefundsPage() {
         <View style={S.iconWrap}>
           <Ionicons name="receipt-outline" size={56} color={PINK} />
         </View>
-        <Text style={S.emptyTitle}>No Refunds Yet</Text>
+        <Text style={S.emptyTitle}>{t.refunds.emptyTitle}</Text>
         <Text style={S.emptySubtitle}>
-          When a refund is processed, it will appear here.
+          {t.refunds.emptySubtitle}
         </Text>
       </View>
     </SafeAreaView>

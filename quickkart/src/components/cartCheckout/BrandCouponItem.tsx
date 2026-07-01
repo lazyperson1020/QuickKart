@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 export interface BrandCoupon {
   id: string;
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function BrandCouponItem({ item, expanded, onToggle }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={S.card}>
       <View style={S.topRow}>
@@ -40,19 +42,19 @@ export default function BrandCouponItem({ item, expanded, onToggle }: Props) {
       <View style={S.footer}>
         <View style={S.autoPill}>
           <Ionicons name="pricetag-outline" size={11} color="#555" />
-          <Text style={S.autoPillText}>Coupon will be auto-applied</Text>
+          <Text style={S.autoPillText}>{t.brandCoupon.autoApplied}</Text>
         </View>
         <TouchableOpacity onPress={onToggle} activeOpacity={0.7} style={S.knowMore}>
-          <Text style={S.knowMoreText}>Know more</Text>
+          <Text style={S.knowMoreText}>{t.brandCoupon.knowMore}</Text>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color="#333" />
         </TouchableOpacity>
       </View>
 
       {expanded && (
         <View style={S.expandedBox}>
-          <Text style={S.expandedLine}>• {item.unlockText} to apply this offer</Text>
-          <Text style={S.expandedLine}>• Coupon will be automatically applied at checkout</Text>
-          <Text style={S.expandedLine}>• Valid on qualifying products from this brand only</Text>
+          <Text style={S.expandedLine}>{t.brandCoupon.unlockLine(item.unlockText)}</Text>
+          <Text style={S.expandedLine}>{t.brandCoupon.autoAppliedLine}</Text>
+          <Text style={S.expandedLine}>{t.brandCoupon.validOnBrandLine}</Text>
         </View>
       )}
     </View>

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Linking, AppState, AppStateStatus, PermissionsAndroid } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from '../localization/LanguageContext';
+import type { TranslationSchema } from '../localization/strings';
 
 const LOCATION_ASKED_KEY = 'location_permission_asked';
 
@@ -73,16 +75,16 @@ async function fetchNearbyLocalities(latitude: number, longitude: number): Promi
   return localities;
 }
 
-async function requestAndroidPermission(): Promise<{ status: string; canAskAgain: boolean }> {
+async function requestAndroidPermission(t: TranslationSchema): Promise<{ status: string; canAskAgain: boolean }> {
   try {
     const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       {
-        title: 'Location Permission',
-        message: 'QuickKart needs access to your location to show nearby stores.',
-        buttonNeutral: 'Ask Me Later',
-        buttonNegative: 'Cancel',
-        buttonPositive: 'OK',
+        title: t.location.permissionTitle,
+        message: t.location.permissionMessage,
+        buttonNeutral: t.location.askMeLater,
+        buttonNegative: t.common.cancel,
+        buttonPositive: t.common.ok,
       }
     );
     if (result === PermissionsAndroid.RESULTS.GRANTED) {
@@ -109,9 +111,10 @@ async function checkAndroidPermission(): Promise<{ status: string; canAskAgain: 
 }
 
 const useLocation = (): LocationHook => {
+  const { t } = useTranslation();
   const [latitude, setLatitude] = useState(0);
   const [longitude, setLongitude] = useState(0);
-  const [address, setAddress] = useState('Loading address...');
+  const [address, setAddress] = useState(t.location.loadingAddress);
   const [city, setCity] = useState('');
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,13 +130,13 @@ const useLocation = (): LocationHook => {
       const addr = await reverseGeocode(lat, lng);
       if (addr) {
         const formatted = [addr.road, addr.suburb, addr.city].filter(Boolean).join(', ');
-        setAddress(formatted || 'Unknown Location');
+        setAddress(formatted || t.location.unknownLocation);
         setCity(addr.city || addr.town || addr.county || '');
       } else {
-        setAddress('Unknown Location');
+        setAddress(t.location.unknownLocation);
       }
     } catch {
-      setAddress('Unknown Location');
+      setAddress(t.location.unknownLocation);
     }
 
     try {
@@ -142,7 +145,7 @@ const useLocation = (): LocationHook => {
     } catch {
       setLocalities([]);
     }
-  }, []);
+  }, [t]);
 
   const getLocation = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -160,35 +163,35 @@ const useLocation = (): LocationHook => {
         isFetchingRef.current = false;
       },
       _error => {
-        setErrorMsg('Could not retrieve your location.');
-        setAddress('Location Unavailable');
+        setErrorMsg(t.location.couldNotRetrieveLocation);
+        setAddress(t.location.locationUnavailableCaps);
         setLoading(false);
         isFetchingRef.current = false;
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
-  }, [fetchLocationData]);
+  }, [fetchLocationData, t]);
 
   const requestLocationAccess = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
 
-    const { status, canAskAgain: askable } = await requestAndroidPermission();
+    const { status, canAskAgain: askable } = await requestAndroidPermission(t);
     setPermissionStatus(status);
     setCanAskAgain(askable);
 
     if (status === 'granted') {
       await getLocation();
     } else {
-      setAddress('Location unavailable');
+      setAddress(t.location.locationUnavailable);
       setLoading(false);
       setErrorMsg(
         askable
-          ? 'Permission to access location was not granted.'
-          : 'Location access is permanently denied. Please enable it in Settings.'
+          ? t.location.permissionNotGranted
+          : t.location.permissionPermanentlyDenied
       );
     }
-  }, [getLocation]);
+  }, [getLocation, t]);
 
   const refreshLocation = useCallback(async () => {
     const { status } = await checkAndroidPermission();
@@ -225,21 +228,21 @@ const useLocation = (): LocationHook => {
       if (alreadyAsked) {
         setPermissionStatus('denied');
         setCanAskAgain(false);
-        setAddress('Location unavailable');
+        setAddress(t.location.locationUnavailable);
         setLoading(false);
         return;
       }
 
       // First time asking — show the dialog and remember that we asked
       await AsyncStorage.setItem(LOCATION_ASKED_KEY, '1');
-      const { status: reqStatus, canAskAgain: askable } = await requestAndroidPermission();
+      const { status: reqStatus, canAskAgain: askable } = await requestAndroidPermission(t);
       if (!isMounted) return;
       setPermissionStatus(reqStatus);
       setCanAskAgain(askable);
       if (reqStatus === 'granted') {
         await getLocation();
       } else {
-        setAddress('Location unavailable');
+        setAddress(t.location.locationUnavailable);
         setLoading(false);
       }
     };

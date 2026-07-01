@@ -1,6 +1,8 @@
 import { View, Text } from "react-native";
+import { useTranslation } from "../localization/LanguageContext";
 
 export default function StockBadge() {
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -13,7 +15,7 @@ export default function StockBadge() {
         borderRadius: 8,
       }}
     >
-      <Text>Sold Out</Text>
+      <Text>{t.stockBadge.soldOut}</Text>
     </View>
   );
 }

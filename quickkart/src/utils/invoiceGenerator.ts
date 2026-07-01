@@ -102,7 +102,7 @@ export function buildInvoiceHtml(order: InvoiceData): string {
           </td>
           <td style="text-align: right; vertical-align: top;">
             <div style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 6px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px;">
-              Tax Invoice / Bill of Supply [cite: 5]
+              Tax Invoice / Bill of Supply 
             </div>
           </td>
         </tr>
@@ -113,13 +113,13 @@ export function buildInvoiceHtml(order: InvoiceData): string {
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="width: 50%; vertical-align: top; padding-right: 20px;">
-            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Invoice Details [cite: 8]</p>
+            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Invoice Details </p>
             <p style="margin: 0 0 4px; font-size: 13px; color: #334155;"><span style="color: #64748b;">Order ID:</span> <span style="font-weight: 700; color: #0f172a;">#${order.orderId.toUpperCase()}</span></p>
             <p style="margin: 0 0 4px; font-size: 13px; color: #334155;"><span style="color: #64748b;">Date:</span> <span style="color: #0f172a;">${order.dateString}</span></p>
             <p style="margin: 0; font-size: 13px; color: #334155;"><span style="color: #64748b;">Payment:</span> <span style="color: #0f172a;">${paymentLabel}</span></p>
           </td>
           <td style="width: 50%; vertical-align: top; padding-left: 20px; border-left: 1px solid #e2e8f0;">
-            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Deliver To [cite: 8, 13]</p>
+            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Deliver To </p>
             <p style="margin: 0 0 4px; font-size: 13px; font-weight: 700; color: #0f172a;">${order.addressLabel ?? 'Home'}</p>
             <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">${order.fullAddress ?? ''}</p>
           </td>
@@ -133,10 +133,10 @@ export function buildInvoiceHtml(order: InvoiceData): string {
         <thead>
           <tr style="border-bottom: 2px solid #0f172a;">
             <th style="padding: 8px 8px; text-align: center; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 40px;">#</th>
-            <th style="padding: 8px 8px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Item Description [cite: 15]</th>
-            <th style="padding: 8px 8px; text-align: center; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 50px;">Qty [cite: 15]</th>
+            <th style="padding: 8px 8px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Item Description </th>
+            <th style="padding: 8px 8px; text-align: center; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 50px;">Qty </th>
             <th style="padding: 8px 8px; text-align: right; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 90px;">Rate</th>
-            <th style="padding: 8px 8px; text-align: right; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 100px;">Amount [cite: 15]</th>
+            <th style="padding: 8px 8px; text-align: right; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; width: 100px;">Amount </th>
           </tr>
         </thead>
         <tbody>
@@ -153,7 +153,7 @@ export function buildInvoiceHtml(order: InvoiceData): string {
           </td>
         </tr>
         <tr>
-          <td style="padding: 8px 0 4px; color: #555; font-size: 13px;">Item Total [cite: 16]</td>
+          <td style="padding: 8px 0 4px; color: #555; font-size: 13px;">Item Total</td>
           <td style="padding: 8px 0 4px; text-align: right; color: #333; font-size: 13px;">&#8377;${order.itemTotal.toFixed(2)}</td>
         </tr>
         ${deliveryRow}

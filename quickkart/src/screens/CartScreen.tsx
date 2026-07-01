@@ -28,6 +28,7 @@ import DealsRail from '../components/cartCheckout/DealsRail';
 import BottomSheet from '../components/BottomSheet';
 import AddressSelector from '../components/cartCheckout/AddressSelector';
 import ScheduleOrderModal from '../components/cartCheckout/ScheduleOrderModal';
+import { useTranslation } from '../localization/LanguageContext';
 
 const PINK = '#FF3269';
 const BG = '#EEEEF7';
@@ -41,6 +42,7 @@ const TIP_OPTIONS = [
 ];
 
 export default function Cart() {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const cart = useSelector((state: RootState) => state.cart);
   const appliedOffer = useSelector((state: RootState) => state.coupon.appliedPaymentOffer);
@@ -59,6 +61,8 @@ export default function Cart() {
   const [tipAmount, setTipAmount] = useState(0);
   const [tipTab, setTipTab] = useState<'tip' | 'instructions'>('tip');
   const [customTip, setCustomTip] = useState('');
+  const [deliveryInstruction, setDeliveryInstruction] = useState('');
+  const [instructionSaved, setInstructionSaved] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -78,7 +82,7 @@ export default function Cart() {
       (snap) => {
         const data = snap.docs.map((d) => {
           const docData = d.data();
-          return { id: d.id, label: docData.type ?? 'Home', address: docData.fullAddress ?? '' };
+          return { id: d.id, label: docData.type ?? t.cart.addressTypeHome, address: docData.fullAddress ?? '' };
         }) as Address[];
         setAddresses(data);
 
@@ -105,7 +109,7 @@ export default function Cart() {
   }, []);
 
   useEffect(() => {
-    const cats = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+    const cats = ['Dairy', 'Fresh', 'Snacks', 'Electronics', 'Drinks', 'Grocery', 'Fashion', 'Beauty', 'Health', 'Household', 'Stores'];
     const catData: Record<string, GroceryProduct[]> = {};
     const unsubscribers: (() => void)[] = [];
 
@@ -163,6 +167,7 @@ export default function Cart() {
         itemTotal,
         deliveryFee,
         tipAmount,
+        deliveryInstruction: deliveryInstruction.trim() || null,
         paymentMethod,
         scheduledDelivery: scheduledDelivery ?? null,
         status: 'placed',
@@ -177,7 +182,7 @@ export default function Cart() {
       dispatch(clearCart());
       navigation.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'OrderPlaced' }] });
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Failed to place order. Try again.' });
+      Toast.show({ type: 'error', text1: t.cart.failedToPlaceOrder });
     }
   };
 
@@ -230,7 +235,7 @@ export default function Cart() {
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={S.headerTitle}>{selectedAddress?.label ?? 'Add Address'}</Text>
+              <Text style={S.headerTitle}>{selectedAddress?.label ?? t.cart.addAddress}</Text>
               <Ionicons name="chevron-down" size={14} color="#555" style={{ marginLeft: 4 }} />
             </View>
             {selectedAddress?.address ? (
@@ -261,7 +266,7 @@ export default function Cart() {
         {/* Savings banner */}
         {totalSavings > 0 && (
           <TouchableOpacity activeOpacity={0.8} style={S.savingsBanner}>
-            <Text style={S.savingsBannerText}>Yay! You saved ₹{totalSavings} on this order</Text>
+            <Text style={S.savingsBannerText}>{t.cart.savedThisOrder(totalSavings)}</Text>
             <Ionicons name="chevron-down" size={14} color="#2e7d32" />
           </TouchableOpacity>
         )}
@@ -269,9 +274,9 @@ export default function Cart() {
         {/* NEW promo row */}
         <TouchableOpacity style={S.promoRow} activeOpacity={0.8}>
           <View style={S.newBadge}>
-            <Text style={S.newBadgeText}>NEW</Text>
+            <Text style={S.newBadgeText}>{t.cart.newBadge}</Text>
           </View>
-          <Text style={S.promoText}>Apply coupons + payment offers & save more</Text>
+          <Text style={S.promoText}>{t.cart.applyCouponsPromo}</Text>
         </TouchableOpacity>
 
         {/* Coupons & offers */}
@@ -285,24 +290,24 @@ export default function Cart() {
                 <Ionicons name="calendar-outline" size={20} color="#2e7d32" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={S.deliveryTitle}>
-                    Arriving on {scheduledDelivery.dateLabel}, {scheduledDelivery.slotShort}
+                    {t.cart.arrivingOn(scheduledDelivery.dateLabel, scheduledDelivery.slotShort)}
                   </Text>
-                  <Text style={S.deliverySubtitle}>Shipment scheduled</Text>
+                  <Text style={S.deliverySubtitle}>{t.cart.shipmentScheduled}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowScheduleModal(true)} activeOpacity={0.8}>
-                  <Text style={{ color: PINK, fontWeight: '700', fontSize: 14 }}>Edit</Text>
+                  <Text style={{ color: PINK, fontWeight: '700', fontSize: 14 }}>{t.cart.edit}</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 <Ionicons name="time-outline" size={20} color="#111" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={S.deliveryTitle}>Delivering in 6 mins</Text>
-                  <Text style={S.deliverySubtitle}>{cart.length} item{cart.length !== 1 ? 's' : ''}</Text>
+                  <Text style={S.deliveryTitle}>{t.cart.deliveringIn6Mins}</Text>
+                  <Text style={S.deliverySubtitle}>{t.cart.itemsCount(cart.length)}</Text>
                 </View>
                 <TouchableOpacity style={S.scheduleBtn} activeOpacity={0.8} onPress={() => setShowScheduleModal(true)}>
                   <Ionicons name="calendar-outline" size={13} color="#E67E22" />
-                  <Text style={S.scheduleBtnText}>Schedule</Text>
+                  <Text style={S.scheduleBtnText}>{t.cart.schedule}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -323,9 +328,9 @@ export default function Cart() {
             onPress={() => navigation.navigate('Wishlist')}
           >
             <Ionicons name="heart-outline" size={16} color={PINK} />
-            <Text style={S.wishlistText}>Add items from your wishlist</Text>
+            <Text style={S.wishlistText}>{t.cart.addFromWishlist}</Text>
             <View style={S.addWishlistBtn}>
-              <Text style={S.addWishlistBtnText}>Add</Text>
+              <Text style={S.addWishlistBtnText}>{t.cart.add}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -347,10 +352,10 @@ export default function Cart() {
               <View style={{ backgroundColor: '#F5F0FF', borderRadius: 10, padding: 8 }}>
                 <Ionicons name="pricetag-outline" size={16} color="#35035C" />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>Deals Starting at</Text>
-              <View style={{ backgroundColor: '#2e7d32', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>{t.cart.bestDeals}</Text>
+              {/* <View style={{ backgroundColor: '#2e7d32', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>₹9</Text>
-              </View>
+              </View> */}
             </View>
             <DealsRail products={products} onProductPress={handleProductPress} />
           </View>
@@ -365,14 +370,14 @@ export default function Cart() {
               onPress={() => setTipTab('tip')}
               activeOpacity={0.8}
             >
-              <Text style={[S.tipTabText, tipTab === 'tip' && S.tipTabTextActive]}>Give a Tip</Text>
+              <Text style={[S.tipTabText, tipTab === 'tip' && S.tipTabTextActive]}>{t.cart.giveATip}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[S.tipTab, tipTab === 'instructions' && S.tipTabActive]}
               onPress={() => { setTipTab('instructions'); scrollToBottom(); }}
               activeOpacity={0.8}
             >
-              <Text style={[S.tipTabText, tipTab === 'instructions' && S.tipTabTextActive]}>Delivery Instructions</Text>
+              <Text style={[S.tipTabText, tipTab === 'instructions' && S.tipTabTextActive]}>{t.cart.deliveryInstructions}</Text>
             </TouchableOpacity>
           </View>
 
@@ -380,12 +385,12 @@ export default function Cart() {
             <>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 16 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={S.tipTitle}>Tip Delivery Partner</Text>
-                  <Text style={S.tipSubtitle}>Help them earn a little extra for their effort.{'\n'}100% of this tip will go to them.</Text>
+                  <Text style={S.tipTitle}>{t.cart.tipDeliveryPartner}</Text>
+                  <Text style={S.tipSubtitle}>{t.cart.tipSubtitle}</Text>
                 </View>
                 {tipAmount > 0 && (
                   <TouchableOpacity onPress={() => { setTipAmount(0); setShowCustomInput(false); setCustomTip(''); }}>
-                    <Text style={{ color: PINK, fontSize: 13, fontWeight: '700' }}>Clear</Text>
+                    <Text style={{ color: PINK, fontSize: 13, fontWeight: '700' }}>{t.cart.clearTip}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -411,7 +416,7 @@ export default function Cart() {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="create-outline" size={20} color={showCustomInput ? '#2e7d32' : '#555'} />
-                  <Text style={[S.tipBtnText, showCustomInput && S.tipBtnTextSelected]}>Custom</Text>
+                  <Text style={[S.tipBtnText, showCustomInput && S.tipBtnTextSelected]}>{t.cart.customTip}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -420,28 +425,38 @@ export default function Cart() {
                   <TextInput
                     style={S.customTipInput}
                     keyboardType="number-pad"
-                    placeholder="Enter amount"
+                    placeholder={t.cart.enterAmountPlaceholder}
                     placeholderTextColor="#aaa"
                     value={customTip}
                     onChangeText={setCustomTip}
                     autoFocus
                   />
                   <TouchableOpacity style={S.customTipApplyBtn} onPress={applyCustomTip} activeOpacity={0.8}>
-                    <Text style={S.customTipApplyText}>Apply</Text>
+                    <Text style={S.customTipApplyText}>{t.cart.apply}</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </>
           ) : (
             <View style={{ marginTop: 16 }}>
-              <Text style={S.tipTitle}>Delivery Instructions</Text>
+              <Text style={S.tipTitle}>{t.cart.deliveryInstructions}</Text>
               <TextInput
                 style={S.instructionsInput}
-                placeholder="E.g. Leave at door, call on arrival..."
+                placeholder={t.cart.instructionsPlaceholder}
                 placeholderTextColor="#aaa"
                 multiline
                 numberOfLines={3}
+                value={deliveryInstruction}
+                onChangeText={(text) => { setDeliveryInstruction(text); setInstructionSaved(false); }}
               />
+              <TouchableOpacity
+                style={[S.customTipApplyBtn, { marginTop: 10, alignSelf: 'flex-end', opacity: deliveryInstruction.trim() ? 1 : 0.4 }]}
+                onPress={() => { if (deliveryInstruction.trim()) setInstructionSaved(true); }}
+                activeOpacity={0.8}
+                disabled={!deliveryInstruction.trim()}
+              >
+                <Text style={S.customTipApplyText}>{instructionSaved ? t.cart.saved : t.cart.save}</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -451,7 +466,7 @@ export default function Cart() {
           <View style={[S.checkbox, noBag && S.checkboxChecked]}>
             {noBag && <Ionicons name="checkmark" size={14} color="#fff" />}
           </View>
-          <Text style={S.bagText}>I don't need a bag</Text>
+          <Text style={S.bagText}>{t.cart.noBag}</Text>
         </TouchableOpacity>
       </ScrollView>
       </KeyboardAvoidingView>
@@ -461,15 +476,15 @@ export default function Cart() {
         {selectedAddress ? (
           <>
             <View>
-              <Text style={S.toPayLabel}>TO PAY</Text>
+              <Text style={S.toPayLabel}>{t.cart.toPay}</Text>
               <Text style={S.toPayAmount}>₹{totalToPay}</Text>
             </View>
             <TouchableOpacity style={S.payOnlineBtn} activeOpacity={0.8} onPress={() => handlePlaceOrder('online')}>
-              <Text style={S.payOnlineText}>Pay Online</Text>
+              <Text style={S.payOnlineText}>{t.cart.payOnline}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={S.cashBtn} activeOpacity={0.8} onPress={() => handlePlaceOrder('cod')}>
-              <Text style={S.cashBtnText}>PAY CASH/UPI</Text>
-              <Text style={S.cashBtnSubText}>(on delivery)</Text>
+              <Text style={S.cashBtnText}>{t.cart.payCashUpi}</Text>
+              <Text style={S.cashBtnSubText}>{t.cart.onDelivery}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -479,7 +494,7 @@ export default function Cart() {
             onPress={() => setShowAddressSheet(true)}
           >
             <Ionicons name="location-outline" size={20} color="#fff" />
-            <Text style={S.addAddressBarText}>Add a delivery address</Text>
+            <Text style={S.addAddressBarText}>{t.cart.addDeliveryAddress}</Text>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </TouchableOpacity>
         )}
@@ -525,14 +540,14 @@ export default function Cart() {
             {/* Content */}
             <View style={S.modalContent}>
               <Text style={S.modalTitle}>{appliedOffer?.title}</Text>
-              <Text style={S.modalSubtitle}>"{appliedOffer?.code} APPLIED"</Text>
+              <Text style={S.modalSubtitle}>{t.cart.couponAppliedLabel(appliedOffer?.code)}</Text>
 
               <TouchableOpacity
                 style={S.gotItBtn}
                 activeOpacity={0.8}
                 onPress={() => dispatch(dismissOfferModal())}
               >
-                <Text style={S.gotItBtnText}>Got it</Text>
+                <Text style={S.gotItBtnText}>{t.cart.gotIt}</Text>
               </TouchableOpacity>
 
               {/* Savings nudge */}
@@ -546,8 +561,8 @@ export default function Cart() {
               >
                 <Ionicons name="pricetag" size={20} color="#2e7d32" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={S.nudgeTitle}>Don't miss extra savings!</Text>
-                  <Text style={S.nudgeSubtitle}>Apply coupons to save more</Text>
+                  <Text style={S.nudgeTitle}>{t.cart.dontMissSavings}</Text>
+                  <Text style={S.nudgeSubtitle}>{t.cart.applyCouponsToSaveMore}</Text>
                 </View>
                 <Text style={S.nudgeArrow}>{'>>'}</Text>
               </TouchableOpacity>
@@ -561,8 +576,9 @@ export default function Cart() {
 
 function CartItemRow({ item, isLast }: { item: CartItem; isLast: boolean }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const showStockToast = (stock: number) =>
-    Toast.show({ type: 'error', text1: `Only ${stock} unit(s) available`, position: 'bottom' });
+    Toast.show({ type: 'error', text1: t.cart.onlyUnitsAvailable(stock), position: 'bottom' });
 
   return (
     <View style={[S.itemRow, !isLast && { marginBottom: 16 }]}>

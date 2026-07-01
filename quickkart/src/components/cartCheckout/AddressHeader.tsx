@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 interface Props {
   title?: string;
   address?: string;
   onPress?: () => void;
 }
 
-export default function AddressHeader({
-  title = 'Home',
-  address = 'Delivering to your saved address',
-  onPress,
-}: Props) {
+export default function AddressHeader({ title, address, onPress }: Props) {
+  const { t } = useTranslation();
+  const displayTitle = title ?? t.addressHeader.defaultTitle;
+  const displayAddress = address ?? t.addressHeader.defaultAddress;
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -47,13 +47,13 @@ export default function AddressHeader({
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ color: '#888', fontSize: 11, fontWeight: '500' }}>Delivering To</Text>
+        <Text style={{ color: '#888', fontSize: 11, fontWeight: '500' }}>{t.addressHeader.deliveringTo}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>{title}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>{displayTitle}</Text>
           <Ionicons name="chevron-down" size={14} color="#555" style={{ marginLeft: 4 }} />
         </View>
         <Text numberOfLines={1} style={{ color: '#999', fontSize: 12, marginTop: 2 }}>
-          {address}
+          {displayAddress}
         </Text>
       </View>
 
@@ -65,7 +65,7 @@ export default function AddressHeader({
           borderRadius: 10,
         }}
       >
-        <Text style={{ color: '#2e7d32', fontSize: 11, fontWeight: '700' }}>10 min</Text>
+        <Text style={{ color: '#2e7d32', fontSize: 11, fontWeight: '700' }}>{t.addressHeader.etaMinutes}</Text>
       </View>
     </TouchableOpacity>
   );

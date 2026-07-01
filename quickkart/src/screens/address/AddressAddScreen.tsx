@@ -17,9 +17,11 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { auth, db } from "../../../firebase.native";
+import { useTranslation } from "../../localization/LanguageContext";
 
 const AddressAdd = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [type, setType] = useState("");
   const [houseNo, setHouseNo] = useState("");
   const [apartment, setApartment] = useState("");
@@ -52,7 +54,7 @@ const AddressAdd = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Address</Text>
+        <Text style={styles.headerTitle}>{t.addressForm.addAddressTitle}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -61,48 +63,48 @@ const AddressAdd = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.label}>Label (Home / Work / Other)</Text>
+        <Text style={styles.label}>{t.addressForm.labelField}</Text>
         <TextInput
           style={styles.input}
           value={type}
           onChangeText={setType}
-          placeholder="e.g. Home"
+          placeholder={t.addressForm.labelPlaceholder}
           placeholderTextColor="#aaa"
         />
 
-        <Text style={styles.label}>House / Flat No.</Text>
+        <Text style={styles.label}>{t.addressForm.houseNoField}</Text>
         <TextInput
           style={styles.input}
           value={houseNo}
           onChangeText={setHouseNo}
-          placeholder="e.g. 42B"
+          placeholder={t.addressForm.houseNoPlaceholder}
           placeholderTextColor="#aaa"
         />
 
-        <Text style={styles.label}>Apartment / Society</Text>
+        <Text style={styles.label}>{t.addressForm.apartmentField}</Text>
         <TextInput
           style={styles.input}
           value={apartment}
           onChangeText={setApartment}
-          placeholder="e.g. Sunrise Apartments"
+          placeholder={t.addressForm.apartmentPlaceholder}
           placeholderTextColor="#aaa"
         />
 
-        <Text style={styles.label}>Landmark</Text>
+        <Text style={styles.label}>{t.addressForm.landmarkField}</Text>
         <TextInput
           style={styles.input}
           value={landmark}
           onChangeText={setLandmark}
-          placeholder="e.g. Near City Mall"
+          placeholder={t.addressForm.landmarkPlaceholder}
           placeholderTextColor="#aaa"
         />
 
-        <Text style={styles.label}>Full Address</Text>
+        <Text style={styles.label}>{t.addressForm.fullAddressField}</Text>
         <TextInput
           style={[styles.input, { height: 80, textAlignVertical: "top" }]}
           value={fullAddress}
           onChangeText={setFullAddress}
-          placeholder="Street, City, Pin code"
+          placeholder={t.addressForm.fullAddressPlaceholder}
           placeholderTextColor="#aaa"
           multiline
         />
@@ -115,7 +117,7 @@ const AddressAdd = () => {
           {saving ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Save Address</Text>
+            <Text style={styles.buttonText}>{t.addressForm.saveAddress}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

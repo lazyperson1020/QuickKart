@@ -5,11 +5,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PINK = '#E91E8C';
 
 export default function PolicyPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={S.container}>
@@ -17,7 +19,7 @@ export default function PolicyPage() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Policies</Text>
+        <Text style={S.headerTitle}>{t.policy.headerTitle}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -25,9 +27,9 @@ export default function PolicyPage() {
         <View style={S.iconWrap}>
           <Ionicons name="document-text-outline" size={56} color={PINK} />
         </View>
-        <Text style={S.emptyTitle}>No Policies Yet</Text>
+        <Text style={S.emptyTitle}>{t.policy.emptyTitle}</Text>
         <Text style={S.emptySubtitle}>
-          Our policies and terms will be available here soon.
+          {t.policy.emptySubtitle}
         </Text>
       </View>
     </SafeAreaView>

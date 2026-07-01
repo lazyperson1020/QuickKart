@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 interface Props {
   savings: number;
 }
 
 export default function SavingsCard({ savings }: Props) {
+  const { t } = useTranslation();
   if (savings <= 0) return null;
 
   return (
@@ -21,11 +23,11 @@ export default function SavingsCard({ savings }: Props) {
 
       <View style={styles.content}>
         <Text style={styles.label}>
-          Total savings on this order
+          {t.savingsCard.totalSavings}
         </Text>
 
         <Text style={styles.savingsText}>
-          You save ₹{savings}
+          {t.savingsCard.youSave(savings)}
         </Text>
       </View>
     </View>

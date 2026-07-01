@@ -8,6 +8,7 @@ import type { RootStackParamList } from './types';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { globalBottomBarVisible, TAB_BAR_RAW_HEIGHT } from './tabBarShared';
 import { navigationRef } from './navigationRef';
+import { useTranslation } from '../localization/LanguageContext';
 
 const HIDE_ON_SCREENS: Array<keyof RootStackParamList> = [
   'ProductDetails',
@@ -23,17 +24,39 @@ const HIDE_ON_SCREENS: Array<keyof RootStackParamList> = [
   'SearchResults',
   'BrandProducts',
   'CategoryProducts',
+  // Profile screens
+  'Profile',
+  'ProfileEdit',
+  'Rewards',
+  'Policy',
+  'Refunds',
+  'ManagePayments',
+  // Help & Support screens
+  'HelpSupport',
+  'GeneralInquiry',
+  'PaymentRelated',
+  'FeedbackSuggestions',
+  'OrderProductsRelated',
+  'GiftCard',
+  'NoCostEMI',
+  'WalletRelated',
+  'QuickkartClub',
+  'Referral',
+  'CocaColaCampaign',
+  'FaqDetail',
+  'FaqCategory',
 ];
 
 const tabs = [
-  { screen: 'Home' as keyof RootStackParamList, icon: 'home-outline', activeIcon: 'home', label: 'Home' },
-  { screen: 'AllProducts' as keyof RootStackParamList, icon: 'grid-outline', activeIcon: 'grid', label: 'Categories' },
-  { screen: 'Orders' as keyof RootStackParamList, icon: 'refresh-outline', activeIcon: 'refresh', label: 'Buy Again' },
-  { screen: 'Search' as keyof RootStackParamList, icon: 'gift-outline', activeIcon: 'gift', label: 'Deals' },
+  { screen: 'Home' as keyof RootStackParamList, icon: 'home-outline', activeIcon: 'home', labelKey: 'home' as const },
+  { screen: 'AllProducts' as keyof RootStackParamList, icon: 'grid-outline', activeIcon: 'grid', labelKey: 'categories' as const },
+  { screen: 'Orders' as keyof RootStackParamList, icon: 'refresh-outline', activeIcon: 'refresh', labelKey: 'buyAgain' as const },
+  { screen: 'Search' as keyof RootStackParamList, icon: 'gift-outline', activeIcon: 'gift', labelKey: 'deals' as const },
 ];
 
 export default function BottomTabBar() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [activeRouteName, setActiveRouteName] = useState('');
 
   useEffect(() => {
@@ -93,7 +116,7 @@ export default function BottomTabBar() {
                 </View>
               )}
             </View>
-            <Text style={[styles.label, { color: itemColor }]}>{tab.label}</Text>
+            <Text style={[styles.label, { color: itemColor }]}>{t.tabBar[tab.labelKey]}</Text>
           </TouchableOpacity>
         );
       })}

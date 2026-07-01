@@ -12,6 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
@@ -22,6 +24,8 @@ import ProductGridCard from '../../components/ProductGridCard';
 import FloatingCartPanel from '../../components/FloatingCartPanel';
 import PriceFilterBadge from '../../components/PriceFilterBadge';
 import { globalBottomBarVisible } from '../../navigation/tabBarShared';
+import { useTranslation } from '../../localization/LanguageContext';
+import type { TranslationSchema } from '../../localization/strings';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE_PAD = 12;
@@ -30,35 +34,60 @@ const CARD_W_2 = Math.floor((SCREEN_W - SIDE_PAD * 2 - COL_GAP) / 2);
 const BANNER_HEIGHT = 160;
 const HEADER_INNER_H = 46;
 
-const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics', 'Drinks', 'Grocery', 'Fashion', 'Beauty', 'Health', 'Household', 'Stores'];
 
-const PRICE_TABS = [
-  { key: 199,  amount: 199,  label: 'Under ₹199', imageUrl: undefined },
-  { key: 299,  amount: 299,  label: 'Under ₹299', imageUrl: undefined },
-  { key: 399,  amount: 399,  label: 'Under ₹399', imageUrl: undefined },
-  { key: 499,  amount: 499,  label: 'Under ₹499', imageUrl: undefined },
-  { key: 9999, amount: 9999, label: 'All Prices', imageUrl: undefined },
+const buildPriceTabs = (t: TranslationSchema) => [
+  { key: 199,  amount: 199,  label: t.deals.priceTabs.under199, imageUrl: undefined },
+  { key: 299,  amount: 299,  label: t.deals.priceTabs.under299, imageUrl: undefined },
+  { key: 399,  amount: 399,  label: t.deals.priceTabs.under399, imageUrl: undefined },
+  { key: 499,  amount: 499,  label: t.deals.priceTabs.under499, imageUrl: undefined },
+  { key: 9999, amount: 9999, label: t.deals.priceTabs.allPrices, imageUrl: undefined },
 ];
 
-const CATEGORY_SECTIONS: { key: string; label: string; emoji: string }[] = [
-  { key: 'Fresh',       label: 'Fresh Produce',      emoji: '🥦' },
-  { key: 'Dairy',       label: 'Dairy Products',      emoji: '🥛' },
-  { key: 'Snacks',      label: 'Snacks & Beverages',  emoji: '🍿' },
-  { key: 'Electronics', label: 'Kitchen & More',       emoji: '🏪' },
+const buildCategorySections = (t: TranslationSchema): { key: string; label: string; emoji: string }[] => [
+  { key: 'Fresh',       label: t.deals.categorySections.fresh,       emoji: '🥦' },
+  { key: 'Dairy',       label: t.deals.categorySections.dairy,       emoji: '🥛' },
+  { key: 'Snacks',      label: t.deals.categorySections.snacks,      emoji: '🍿' },
+  { key: 'Electronics', label: t.deals.categorySections.electronics, emoji: '🏪' },
 ];
 
 export default function DealsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const PRICE_TABS = useMemo(() => buildPriceTabs(t), [t]);
+  const CATEGORY_SECTIONS = useMemo(() => buildCategorySections(t), [t]);
   const { top } = useSafeAreaInsets();
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePrice, setActivePrice] = useState(199);
+  const [categoryIconMap, setCategoryIconMap] = useState<Record<string, { type: string; name: string; color: string; iconUrl?: string }>>({});
 
   const scrollY = useSharedValue(0);
 
   useFocusEffect(useCallback(() => {
     globalBottomBarVisible.value = 1;
   }, []));
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'categoryPriority'),
+      (snap) => {
+        const map: Record<string, { type: string; name: string; color: string; iconUrl?: string }> = {};
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          map[doc.id] = {
+            type: data.iconType || 'material',
+            name: data.iconName || 'basket',
+            color: data.iconColor || '#35035C',
+            iconUrl: data.iconUrl || undefined,
+          };
+        });
+        setCategoryIconMap(map);
+      },
+      (err) => console.warn('Failed to fetch category icons:', err)
+    );
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const catData: Record<string, GroceryProduct[]> = {};
@@ -121,7 +150,7 @@ export default function DealsScreen() {
       map[sec.key] = products.filter(p => p.category === sec.key && p.price <= activePrice);
     });
     return map;
-  }, [products, activePrice]);
+  }, [products, activePrice, CATEGORY_SECTIONS]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F4F6FB' }}>
@@ -151,7 +180,7 @@ export default function DealsScreen() {
           <Ionicons name="arrow-back" size={22} color="#111" />
         </TouchableOpacity>
 
-        <Animated.Text style={[S.headerTitle, titleAnimStyle]}>Sale</Animated.Text>
+        <Animated.Text style={[S.headerTitle, titleAnimStyle]}>{t.deals.saleTitle}</Animated.Text>
 
         <TouchableOpacity
           style={S.iconTouchTarget}
@@ -199,8 +228,8 @@ export default function DealsScreen() {
             {filteredByPrice.length > 0 && (
               <View style={S.section}>
                 <View style={S.sectionHeader}>
-                  <Text style={S.sectionTitle}>🏷 Sale Picks</Text>
-                  <Text style={S.sectionCount}>{filteredByPrice.length} items</Text>
+                  <Text style={S.sectionTitle}>{t.deals.salePicks}</Text>
+                  <Text style={S.sectionCount}>{t.deals.itemsCount(filteredByPrice.length)}</Text>
                 </View>
 
                 <View style={S.grid}>
@@ -222,7 +251,7 @@ export default function DealsScreen() {
                     activeOpacity={0.8}
                     onPress={() => navigation.navigate('SearchResults')}
                   >
-                    <Text style={S.seeAllText}>See All</Text>
+                    <Text style={S.seeAllText}>{t.deals.seeAll}</Text>
                     <Ionicons name="chevron-forward" size={14} color="#555" />
                   </TouchableOpacity>
                 )}
@@ -236,8 +265,17 @@ export default function DealsScreen() {
               return (
                 <View key={sec.key} style={S.section}>
                   <View style={S.sectionHeader}>
-                    <Text style={S.sectionTitle}>{sec.emoji} {sec.label}</Text>
-                    <Text style={S.sectionCount}>{items.length} items</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {(() => {
+                        const icon = categoryIconMap[sec.key];
+                        if (!icon) return <Text style={{ fontSize: 18 }}>{sec.emoji}</Text>;
+                        if (icon.iconUrl) return <Image source={{ uri: icon.iconUrl }} style={{ width: 22, height: 22 }} resizeMode="contain" />;
+                        if (icon.type === 'fa6') return <FontAwesome6 name={icon.name} size={18} color={icon.color} />;
+                        return <MaterialCommunityIcons name={icon.name as any} size={22} color={icon.color} />;
+                      })()}
+                      <Text style={S.sectionTitle}>{sec.label}</Text>
+                    </View>
+                    <Text style={S.sectionCount}>{t.deals.itemsCount(items.length)}</Text>
                   </View>
 
                   <View style={S.grid}>
@@ -259,7 +297,7 @@ export default function DealsScreen() {
                       activeOpacity={0.8}
                       onPress={() => navigation.navigate('CategoryProducts', { category: sec.key })}
                     >
-                      <Text style={S.seeAllText}>See All</Text>
+                      <Text style={S.seeAllText}>{t.deals.seeAll}</Text>
                       <Ionicons name="chevron-forward" size={14} color="#555" />
                     </TouchableOpacity>
                   )}
@@ -271,10 +309,10 @@ export default function DealsScreen() {
               <View style={{ alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🎉</Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#333' }}>
-                  No products under ₹{activePrice === 9999 ? 'this range' : activePrice}
+                  {t.deals.noProductsUnder(activePrice === 9999 ? t.deals.thisRange : activePrice)}
                 </Text>
                 <Text style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-                  Try a different price range
+                  {t.deals.tryDifferentPriceRange}
                 </Text>
               </View>
             )}

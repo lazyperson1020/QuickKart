@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import FontAwesome6 from "react-native-vector-icons/FontAwesome6";
 import { useSelector } from "react-redux";
 import { auth, db } from "../../../firebase.native";
 import CategoryRecycler from "../../components/CategoryRecycler";
@@ -26,7 +27,9 @@ import BannerRail from '../BannersScreen';
 import ProductRail from '../../components/ProductRail';
 import SeeAllButton from "../../components/SeeAllButton";
 import BottomSheet from "../../components/BottomSheet";
+import AllCategoriesGrid from "../../components/AllCategoriesGrid";
 import { useSinglePress } from "../../hooks/useSinglePress";
+import { useTranslation } from "../../localization/LanguageContext";
 
 // Type-safe layout variables
 import { globalLayoutScrollY, globalBottomBarVisible, TAB_BAR_RAW_HEIGHT } from "../../navigation/tabBarShared";
@@ -44,11 +47,45 @@ const ZEPTO_SPRING_CONFIG = {
   mass: 0.5
 };
 
+function AnimatedSearchPlaceholder() {
+  const { t } = useTranslation();
+  const searchHints = t.home.searchHints;
+  const [hintText, setHintText] = useState("");
+  const [hintIndex, setHintIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentHint = searchHints[hintIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting && hintText.length < currentHint.length) {
+      timeout = setTimeout(() => setHintText(currentHint.slice(0, hintText.length + 1)), 90);
+    } else if (!isDeleting && hintText.length === currentHint.length) {
+      timeout = setTimeout(() => setIsDeleting(true), 1400);
+    } else if (isDeleting && hintText.length > 0) {
+      timeout = setTimeout(() => setHintText(currentHint.slice(0, hintText.length - 1)), 60);
+    } else if (isDeleting && hintText.length === 0) {
+      setIsDeleting(false);
+      setHintIndex((prev) => (prev + 1) % searchHints.length);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [hintText, isDeleting, hintIndex, searchHints]);
+
+  return (
+    <Text style={{ color: "#6B7280", fontSize: 14, fontWeight: "500" }}>
+      {`${t.home.searchForPrefix} `}
+      <Text style={{ color: "#6B7280", fontWeight: "600" }}>{hintText}</Text>
+    </Text>
+  );
+}
+
 interface GroupedProducts {
   [key: string]: GroceryProduct[];
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const { address: gpsAddress, permissionStatus } = useLocation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -58,7 +95,7 @@ export default function Home() {
 
   const displayAddress = reduxSelectedAddress
     ? `${reduxSelectedAddress.label} • ${reduxSelectedAddress.address}`
-    : permissionStatus === 'denied' ? "Location unavailable" : gpsAddress;
+    : permissionStatus === 'denied' ? t.home.locationUnavailable : gpsAddress;
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -79,8 +116,12 @@ export default function Home() {
   // FIXED: Moved categories array state to top level safely
   const [categories, setCategories] = useState<string[]>(["Dairy", "Fresh", "Snacks", "Electronics", "Drinks"]);
   
-  // Internal location reference hook channel 
+  // Internal location reference hook channel
   const lastOffset = useSharedValue(0);
+  // Home's own scroll position — kept local (not the cross-screen globalLayoutScrollY)
+  // so returning from another screen that wrote a different offset can't leave
+  // Home's header stuck in a collapsed/expanded state until the next scroll event.
+  const homeScrollY = useSharedValue(0);
 
   // Listen to category priority order (only when viewing All)
   useEffect(() => {
@@ -135,7 +176,7 @@ export default function Home() {
           },
           (err: any) => {
             console.error("Firestore Fetch Error:", err);
-            setFetchError(err?.message ?? "Failed to load products.");
+            setFetchError(err?.message ?? t.home.failedToLoadProducts);
             setLoading(false);
             setRefreshing(false);
           }
@@ -162,7 +203,7 @@ export default function Home() {
         },
         (err: any) => {
           console.error("Firestore Fetch Error:", err);
-          setFetchError(err?.message ?? "Failed to load products.");
+          setFetchError(err?.message ?? t.home.failedToLoadProducts);
           setLoading(false);
           setRefreshing(false);
         }
@@ -227,6 +268,7 @@ export default function Home() {
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const currentOffset = event.contentOffset.y;
+      homeScrollY.value = currentOffset;
       globalLayoutScrollY.value = currentOffset;
 
       const delta = currentOffset - lastOffset.value;
@@ -257,8 +299,8 @@ export default function Home() {
   });
 
   const useMetadataCollapseStyle = useAnimatedStyle(() => {
-    const currentHeight = interpolate(globalLayoutScrollY.value, [0, COLLAPSE_THRESHOLD], [METADATA_HEIGHT, 0], Extrapolate.CLAMP);
-    const opacity = interpolate(globalLayoutScrollY.value, [0, COLLAPSE_THRESHOLD * 0.4], [1, 0], Extrapolate.CLAMP);
+    const currentHeight = interpolate(homeScrollY.value, [0, COLLAPSE_THRESHOLD], [METADATA_HEIGHT, 0], Extrapolate.CLAMP);
+    const opacity = interpolate(homeScrollY.value, [0, COLLAPSE_THRESHOLD * 0.4], [1, 0], Extrapolate.CLAMP);
     return {
       height: currentHeight,
       opacity: opacity,
@@ -312,10 +354,13 @@ export default function Home() {
       
       <Animated.View style={[{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", overflow: "hidden" }, useMetadataCollapseStyle]}>
         <View style={{ flex: 1, paddingRight: 10, justifyContent: "center", height: METADATA_HEIGHT }}>
-          <Text style={{ fontSize: 22, fontWeight: "900", color: "#3c1053", letterSpacing: -0.5 }}>⚡ 7 minutes</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <FontAwesome6 name="bolt-lightning" size={18} color="#000000" />
+            <Text style={{ fontSize: 22, fontWeight: "900", color: "#3c1053", letterSpacing: -0.5 }}>{t.home.deliveryTime}</Text>
+          </View>
           <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-            <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, maxWidth: 160, color: "#4B5563", fontSize: 13 }}>
+            <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} style={{ flexShrink: 1, maxWidth: 160 }}>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: "#4B5563", fontSize: 13 }}>
                 {reduxSelectedAddress ? (
                   <>
                     <Text style={{ fontWeight: "700" }}>{reduxSelectedAddress.label}</Text>
@@ -325,7 +370,9 @@ export default function Home() {
                   displayAddress
                 )}
               </Text>
-              <Ionicons name="chevron-down" size={13} color="#6B7280" style={{ marginLeft: 3 }} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={goToAddressList} activeOpacity={0.7} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} style={{ marginLeft: 3 }}>
+              <Ionicons name="chevron-down" size={13} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
@@ -336,12 +383,12 @@ export default function Home() {
 
       <View style={{ height: SEARCH_BAR_HEIGHT, justifyContent: "center" }}>
         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 12, paddingHorizontal: 14, height: 44, marginHorizontal: 16, borderWidth: 1, borderColor: "#E5E7EB" }} onPress={goToSearch} activeOpacity={0.9}>
-          <Text style={{ fontSize: 15, color: "#6B7280", marginRight: 8 }}>🔍</Text>
-          <Text style={{ color: "#9CA3AF", fontSize: 14, fontWeight: "500" }}>Search for milk, fruits, veggies...</Text>
+          <Ionicons name="search-outline" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+          <AnimatedSearchPlaceholder />
         </TouchableOpacity>
       </View>
       
-      <CategoryRecycler selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} scrollY={globalLayoutScrollY} />
+      <CategoryRecycler selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} scrollY={homeScrollY} />
     </View>
 
       <Animated.View style={[{ position: "absolute", top: insets.top + SEARCH_BAR_HEIGHT + 60, alignSelf: "center", zIndex: 20 }, useBackToTopAnimation]}>
@@ -353,7 +400,7 @@ export default function Home() {
           activeOpacity={0.9} 
           style={{ backgroundColor: "#111827", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, flexDirection: "row", alignItems: "center", elevation: 5 }}
         >
-          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>Back to top ↑</Text>
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>{t.common.backToTop}</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -386,14 +433,14 @@ export default function Home() {
         ) : fetchError ? (
           <Text style={{ textAlign: 'center', color: '#DC2626', marginVertical: 40, fontSize: 14, paddingHorizontal: 20 }}>{fetchError}</Text>
         ) : products.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#666', marginVertical: 40, fontSize: 14 }}>No products available yet!</Text>
+          <Text style={{ textAlign: 'center', color: '#666', marginVertical: 40, fontSize: 14 }}>{t.home.noProductsYet}</Text>
         ) : selectedCategory === "All" ? (
 
           <View>
             <View style={{ marginBottom: 8 }}>
               <View style={{ paddingHorizontal: 16, marginTop: 12, marginBottom: 8 }}>
                 <Text style={{ fontSize: 20, fontWeight: "800", color: "#111", letterSpacing: -0.4 }}>
-                  Handpicked Daily Essentials
+                  {t.home.handpickedEssentials}
                 </Text>
               </View>
               <View style={{ paddingHorizontal: 8 }}>
@@ -410,7 +457,7 @@ export default function Home() {
                   </Text>
                   <TouchableOpacity onPress={() => navigation.navigate('CategoryProducts', { category: categoryName })} activeOpacity={0.7}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' }}>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>See all ›</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>{t.common.seeAll}</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -437,7 +484,7 @@ export default function Home() {
                   </Text>
                   <TouchableOpacity onPress={() => navigation.navigate('CategoryProducts', { category: selectedCategory, subCategory: subSectionName })} activeOpacity={0.7}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' }}>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>See all ›</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#35035C' }}>{t.common.seeAll}</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -454,6 +501,10 @@ export default function Home() {
             ))}
           </View>
         )}
+
+        <View style={{ marginTop: 12 }}>
+          <AllCategoriesGrid />
+        </View>
 
         <Image
           source={require('../../../assets/footerImages/homefooter.png')}
@@ -472,7 +523,7 @@ export default function Home() {
               style={{ position: 'absolute', top: -30, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}
             >
               <View style={{ backgroundColor: '#423f3f', paddingHorizontal: 16, paddingVertical: 5, borderRadius: 20 }}>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12, letterSpacing: 0.3 }}>Offers  ↑</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12, letterSpacing: 0.3 }}>{t.home.offersToggle}</Text>
               </View>
             </TouchableOpacity>
 
@@ -480,10 +531,10 @@ export default function Home() {
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }} numberOfLines={1}>
-                    Unlock free delivery
+                    {t.home.unlockFreeDelivery}
                   </Text>
                   <Text style={{ color: '#AAA', fontSize: 11, marginTop: 1 }} numberOfLines={1}>
-                    {cartTotal >= 99 ? ' Free delivery unlocked!' : `Shop ₹${99 - cartTotal} more`}
+                    {cartTotal >= 99 ? t.home.freeDeliveryUnlocked : t.home.shopMoreForDelivery(99 - cartTotal)}
                   </Text>
                 </View>
               </View>
@@ -521,9 +572,9 @@ export default function Home() {
                 </View>
               ) : null}
               <View style={{ alignItems: 'flex-start' }}>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, lineHeight: 17 }}>Cart</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, lineHeight: 17 }}>{t.home.cartLabel}</Text>
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, lineHeight: 14 }}>
-                  {cartCount} item{cartCount !== 1 ? 's' : ''}
+                  {t.home.itemsCount(cartCount)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -534,9 +585,9 @@ export default function Home() {
 
       <BottomSheet visible={showOffers} onClose={() => setShowOffers(false)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>Offers For You</Text>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>{t.home.offersForYou}</Text>
           <View style={{ backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#555' }}>3 offers</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#555' }}>{t.home.offersCountLabel}</Text>
           </View>
         </View>
 
@@ -546,14 +597,14 @@ export default function Home() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Text style={{ fontSize: 22 }}>🚚</Text>
                 <View>
-                  <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>Free Delivery</Text>
+                  <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.freeDelivery}</Text>
                   <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
-                    {cartTotal >= 99 ? 'Unlocked on this order!' : `Add ₹${99 - cartTotal} more to unlock`}
+                    {cartTotal >= 99 ? t.home.freeDeliveryUnlockedOnOrder : t.home.addMoreToUnlockDelivery(99 - cartTotal)}
                   </Text>
                 </View>
               </View>
               <View style={{ backgroundColor: cartTotal >= 99 ? '#4CAF50' : '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{cartTotal >= 99 ? 'Unlocked' : 'Locked'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{cartTotal >= 99 ? t.common.unlocked : t.common.locked}</Text>
               </View>
             </View>
             <View style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginTop: 12 }}>
@@ -567,12 +618,12 @@ export default function Home() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontSize: 22 }}>🏷️</Text>
               <View>
-                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>₹50 OFF</Text>
-                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>Shop for ₹599 more to apply</Text>
+                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.off50}</Text>
+                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{t.home.shopMoreFor50}</Text>
               </View>
             </View>
             <View style={{ backgroundColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>Locked</Text>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{t.common.locked}</Text>
             </View>
           </View>
         </View>
@@ -582,12 +633,12 @@ export default function Home() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontSize: 22 }}>🎁</Text>
               <View>
-                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>₹100 OFF</Text>
-                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>Shop for ₹1199 more to apply</Text>
+                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.off100}</Text>
+                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{t.home.shopMoreFor100}</Text>
               </View>
             </View>
             <View style={{ backgroundColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>Locked</Text>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{t.common.locked}</Text>
             </View>
           </View>
         </View>

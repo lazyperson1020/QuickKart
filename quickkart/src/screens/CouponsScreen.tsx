@@ -14,6 +14,7 @@ import BrandCouponItem, { BrandCoupon } from '../components/cartCheckout/BrandCo
 import PaymentOfferItem, { PaymentOffer } from '../components/cartCheckout/PaymentOfferItem';
 import BottomSheet from '../components/BottomSheet';
 import { applyPaymentOffer } from '../redux/couponSlice';
+import { useTranslation } from '../localization/LanguageContext';
 
 const PINK = '#FF3269';
 const BG = '#EEEEF7';
@@ -78,7 +79,7 @@ const PAYMENT_OFFERS: PaymentOffer[] = [
     terms: [
       'Valid only for users who have linked their Amazon account and made a payment using Amazon Pay Balance',
       'Applicable only to India mobile-verified users',
-      'Valid on Zepto orders with a minimum transaction value of ₹99',
+      'Valid on QuickKart orders with a minimum transaction value of ₹99',
       'Cashback will be issued only after the user scratches the issued scratch card on the Amazon Pay Rewards page',
       'The scratch card will be available until the end of the month',
       'Cashback will be credited as Amazon Pay balance within 24 hours of scratching the card',
@@ -205,6 +206,7 @@ const PAY_FILTERS: { key: PayFilter; icon: string; label: string }[] = [
 ];
 
 export default function Coupons() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Coupons'>>();
@@ -240,13 +242,13 @@ export default function Coupons() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Coupon & Offers</Text>
+        <Text style={S.headerTitle}>{t.coupons.headerTitle}</Text>
         <TouchableOpacity
           style={S.haveCodeBtn}
           onPress={() => setShowCodeSheet(true)}
           activeOpacity={0.8}
         >
-          <Text style={S.haveCodeText}>Have a code?</Text>
+          <Text style={S.haveCodeText}>{t.coupons.haveACode}</Text>
         </TouchableOpacity>
       </View>
 
@@ -260,13 +262,13 @@ export default function Coupons() {
             activeOpacity={0.8}
           >
             <Text style={[S.tabText, activeTab === tab && S.tabTextActive]}>
-              {tab === 'coupons' ? 'Coupons' : 'Payment Offers'}
+              {tab === 'coupons' ? t.coupons.couponsTab : t.coupons.paymentOffersTab}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={S.noteText}>Note: You can now apply coupons and payment offers together.</Text>
+      <Text style={S.noteText}>{t.coupons.note}</Text>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -274,7 +276,7 @@ export default function Coupons() {
       >
         {activeTab === 'coupons' ? (
           <>
-            <Text style={S.sectionHeader}>AUTO-APPLIED BRAND ADD-ONS</Text>
+            <Text style={S.sectionHeader}>{t.coupons.autoAppliedBrandAddOns}</Text>
             {BRAND_COUPONS.map(item => (
               <BrandCouponItem
                 key={item.id}
@@ -341,13 +343,13 @@ export default function Coupons() {
         onClose={() => { setShowCodeSheet(false); setCouponCode(''); }}
         height={270}
       >
-        <Text style={S.sheetTitle}>Have a coupon code? Apply here!</Text>
+        <Text style={S.sheetTitle}>{t.coupons.haveACouponCodeTitle}</Text>
 
         <View style={[S.inputBox, codeFocused && S.inputBoxFocused]}>
-          <Text style={[S.inputLabel, codeFocused && S.inputLabelFocused]}>Coupon Code</Text>
+          <Text style={[S.inputLabel, codeFocused && S.inputLabelFocused]}>{t.coupons.couponCodeLabel}</Text>
           <TextInput
             style={S.codeInput}
-            placeholder="Enter coupon code"
+            placeholder={t.coupons.enterCouponCodePlaceholder}
             placeholderTextColor="#BBB"
             value={couponCode}
             onChangeText={setCouponCode}
@@ -362,7 +364,7 @@ export default function Coupons() {
           activeOpacity={couponCode.trim() ? 0.8 : 1}
         >
           <Text style={[S.applyBtnText, !couponCode.trim() && S.applyBtnTextDisabled]}>
-            Apply
+            {t.common.apply}
           </Text>
         </TouchableOpacity>
       </BottomSheet>

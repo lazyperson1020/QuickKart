@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 export interface PaymentOffer {
   id: string;
@@ -26,6 +27,7 @@ interface Props {
 const PINK = '#FF3269';
 
 export default function PaymentOfferItem({ item, expanded, onToggle, onApply }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={S.card}>
       <View style={S.topRow}>
@@ -51,7 +53,7 @@ export default function PaymentOfferItem({ item, expanded, onToggle, onApply }: 
           style={[S.actionBtn, item.isLocked && S.lockedBtn]}
         >
           <Text style={[S.actionBtnText, item.isLocked && S.lockedBtnText]}>
-            {item.isLocked ? 'Locked' : 'Apply'}
+            {item.isLocked ? t.common.locked : t.common.apply}
           </Text>
         </TouchableOpacity>
       </View>
@@ -63,7 +65,7 @@ export default function PaymentOfferItem({ item, expanded, onToggle, onApply }: 
           <Text style={S.codeText}>{item.code}</Text>
         </View>
         <TouchableOpacity onPress={onToggle} activeOpacity={0.7} style={S.knowMore}>
-          <Text style={S.knowMoreText}>Know more</Text>
+          <Text style={S.knowMoreText}>{t.brandCoupon.knowMore}</Text>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color="#333" />
         </TouchableOpacity>
       </View>

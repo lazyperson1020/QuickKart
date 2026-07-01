@@ -12,6 +12,7 @@ import ProductGridCard from './ProductGridCard';
 import { GroceryProduct } from './productCard';
 import { useSinglePress } from '../hooks/useSinglePress';
 import type { RootStackParamList } from '../navigation/types';
+import { useTranslation } from '../localization/LanguageContext';
 
 interface ProductGridProps {
   products: GroceryProduct[];
@@ -28,13 +29,15 @@ export default function ProductGrid({
   products,
   loading = false,
   error = null,
-  emptyMessage = 'No products found.',
+  emptyMessage,
   ListHeaderComponent,
   contentPaddingBottom = 120,
   onScroll,
   scrollEventThrottle = 16,
 }: ProductGridProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const displayEmptyMessage = emptyMessage ?? t.products.noProductsFound;
 
   const handlePress = useSinglePress(
     useCallback(
@@ -59,7 +62,7 @@ export default function ProductGrid({
   }
 
   if (products.length === 0) {
-    return <Text style={styles.emptyText}>{emptyMessage}</Text>;
+    return <Text style={styles.emptyText}>{displayEmptyMessage}</Text>;
   }
 
   return (

@@ -4,7 +4,7 @@ export type RootStackParamList = {
   Home: undefined;
   AllProducts: undefined;
   Products: { category: string; categoryTitle: string };
-  CategoryDetail: { category: string; categoryTitle: string };
+  CategoryDetail: { category: string; categoryTitle: string; subCategory?: string };
   Cart: undefined;
   ProductDetails: { productJson: string };
   CategoryProducts: { category: string; subCategory?: string };
@@ -16,7 +16,7 @@ export type RootStackParamList = {
   PreviousOrders: undefined;
   OrderDetails: { orderId: string };
   Search: undefined;
-  SearchResults: { query?: string };
+  SearchResults: { query?: string; subCategory?: string };
   Profile: undefined;
   ProfileEdit: undefined;
   Wishlist: undefined;
@@ -24,6 +24,18 @@ export type RootStackParamList = {
   Policy: undefined;
   Refunds: undefined;
   HelpSupport: undefined;
+  FaqCategory: { categoryId: string; categoryTitle: string };
+  GeneralInquiry: undefined;
+  FaqDetail: { question: string; answer: string; category: string; hasContactFooter?: boolean; hasLink?: boolean };
+  PaymentRelated: undefined;
+  FeedbackSuggestions: undefined;
+  OrderProductsRelated: undefined;
+  GiftCard: undefined;
+  NoCostEMI: undefined;
+  WalletRelated: undefined;
+  QuickkartClub: undefined;
+  Referral: undefined;
+  CocaColaCampaign: undefined;
   ManagePayments: undefined;
   AddressList: undefined;
   AddressAdd: undefined;

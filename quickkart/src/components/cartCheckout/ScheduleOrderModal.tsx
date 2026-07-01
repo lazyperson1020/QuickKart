@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BottomSheet from '../BottomSheet';
 import { CartItem } from '../../redux/cartSlice';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PINK = '#FF3269';
 const AMBER = '#E67E22';
@@ -71,6 +72,7 @@ interface Props {
 }
 
 export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartItems }: Props) {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState<'today' | 'tomorrow'>('today');
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
@@ -107,8 +109,8 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
             <Ionicons name="arrow-back" size={22} color="#111" />
           </TouchableOpacity>
           <View style={{ marginLeft: 12 }}>
-            <Text style={SS.headerTitle}>Schedule your order</Text>
-            <Text style={SS.headerSub}>1 shipment</Text>
+            <Text style={SS.headerTitle}>{t.scheduleModal.scheduleYourOrder}</Text>
+            <Text style={SS.headerSub}>{t.scheduleModal.oneShipment}</Text>
           </View>
         </View>
 
@@ -128,19 +130,19 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
                   />
                 ))}
               </View>
-              <Text style={SS.shipmentLabel}>Shipment</Text>
+              <Text style={SS.shipmentLabel}>{t.scheduleModal.shipment}</Text>
               <View style={SS.shipmentBadge}>
-                <Text style={SS.shipmentBadgeText}>1 of 1</Text>
+                <Text style={SS.shipmentBadgeText}>{t.scheduleModal.oneOfOne}</Text>
               </View>
               <View style={{ flex: 1 }} />
               <Ionicons name="chevron-up" size={20} color="#888" />
             </View>
 
             <View style={SS.itemsRow}>
-              <Text style={SS.itemsCount}>{cartItems.length} Item{cartItems.length !== 1 ? 's' : ''}</Text>
+              <Text style={SS.itemsCount}>{t.scheduleModal.itemsCount(cartItems.length)}</Text>
               <Text style={SS.separator}> | </Text>
               <TouchableOpacity onPress={() => setShowViewItems(true)}>
-                <Text style={SS.viewItemsLink}>View items</Text>
+                <Text style={SS.viewItemsLink}>{t.scheduleModal.viewItems}</Text>
               </TouchableOpacity>
             </View>
 
@@ -150,27 +152,27 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
                 <Ionicons name="flash" size={16} color="#5B00B5" />
               </View>
               <Text style={SS.demandText}>
-                <Text style={{ fontWeight: '700' }}>High Demand!</Text>
-                {' '}Instant delivery is temporarily unavailable. Schedule for later.
+                <Text style={{ fontWeight: '700' }}>{t.scheduleModal.highDemand}</Text>
+                {' '}{t.scheduleModal.instantUnavailableNote}
               </Text>
             </View>
 
             {/* Delivery type selector */}
             <View style={SS.deliveryTypeRow}>
               <View style={SS.instantBox}>
-                <Text style={SS.instantTitle}>Instant Delivery</Text>
-                <Text style={SS.instantSub}>Unavailable</Text>
+                <Text style={SS.instantTitle}>{t.scheduleModal.instantDelivery}</Text>
+                <Text style={SS.instantSub}>{t.scheduleModal.unavailable}</Text>
                 <View style={{ position: 'absolute', right: 10, top: 12 }}>
                   <Ionicons name="flash" size={18} color="#CCC" />
                 </View>
               </View>
               <View style={SS.scheduleBox}>
                 <View style={{ flex: 1 }}>
-                  <Text style={SS.scheduleTitle}>Schedule Delivery</Text>
+                  <Text style={SS.scheduleTitle}>{t.scheduleModal.scheduleDelivery}</Text>
                   <Text style={SS.scheduleSub} numberOfLines={1}>
                     {selectedSlot
-                      ? `${currentDateLabel}, ${selectedSlot.display}`
-                      : 'Select a slot'}
+                      ? t.scheduleModal.dateSlotFormat(currentDateLabel, selectedSlot.display)
+                      : t.scheduleModal.selectASlot}
                   </Text>
                 </View>
                 <Ionicons name="calendar" size={22} color={AMBER} />
@@ -185,10 +187,10 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
                 activeOpacity={0.8}
               >
                 <Text style={[SS.dateTabTitle, selectedDate === 'today' && SS.dateTabTitleActive]}>
-                  Today, {todayLabel}
+                  {t.scheduleModal.today(todayLabel)}
                 </Text>
                 <Text style={[SS.dateTabSlots, selectedDate === 'today' && SS.dateTabSlotsActive]}>
-                  {TODAY_SLOTS.length} Slots
+                  {t.scheduleModal.slotsCount(TODAY_SLOTS.length)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -197,10 +199,10 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
                 activeOpacity={0.8}
               >
                 <Text style={[SS.dateTabTitle, selectedDate === 'tomorrow' && SS.dateTabTitleActive]}>
-                  Tomorrow, {tomorrowLabel}
+                  {t.scheduleModal.tomorrow(tomorrowLabel)}
                 </Text>
                 <Text style={[SS.dateTabSlots, selectedDate === 'tomorrow' && SS.dateTabSlotsActive]}>
-                  {TOMORROW_SLOTS.length} Slots
+                  {t.scheduleModal.slotsCount(TOMORROW_SLOTS.length)}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -210,7 +212,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
               <>
                 <View style={SS.sectionHeader}>
                   <Ionicons name="time-outline" size={14} color="#888" />
-                  <Text style={SS.sectionLabel}>EARLIEST</Text>
+                  <Text style={SS.sectionLabel}>{t.scheduleModal.earliest}</Text>
                 </View>
                 <SlotGrid slots={earliestSlots} selected={selectedSlot} onSelect={setSelectedSlot} />
               </>
@@ -221,7 +223,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
               <>
                 <View style={SS.sectionHeader}>
                   <Ionicons name="cloudy-outline" size={14} color="#888" />
-                  <Text style={SS.sectionLabel}>AFTERNOON</Text>
+                  <Text style={SS.sectionLabel}>{t.scheduleModal.afternoon}</Text>
                 </View>
                 <SlotGrid slots={afternoonSlots} selected={selectedSlot} onSelect={setSelectedSlot} />
               </>
@@ -232,7 +234,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
               <>
                 <View style={SS.sectionHeader}>
                   <Ionicons name="moon-outline" size={14} color="#888" />
-                  <Text style={SS.sectionLabel}>EVENING</Text>
+                  <Text style={SS.sectionLabel}>{t.scheduleModal.evening}</Text>
                 </View>
                 <SlotGrid slots={eveningSlots} selected={selectedSlot} onSelect={setSelectedSlot} />
               </>
@@ -244,7 +246,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
                 onPress={() => setShowMoreSlots(v => !v)}
                 activeOpacity={0.8}
               >
-                <Text style={SS.moreSlotsText}>{showMoreSlots ? 'Less Slots' : 'More Slots'}</Text>
+                <Text style={SS.moreSlotsText}>{showMoreSlots ? t.scheduleModal.lessSlots : t.scheduleModal.moreSlots}</Text>
                 <Ionicons
                   name={showMoreSlots ? 'chevron-up' : 'chevron-down'}
                   size={14}
@@ -259,7 +261,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
         <View style={[SS.bottomArea, { paddingBottom: bottom + 16 }]}>
           <View style={SS.cancelNote}>
             <Ionicons name="information-circle-outline" size={16} color="#1565C0" />
-            <Text style={SS.cancelNoteText}>You can cancel up to 30 min prior to delivery time</Text>
+            <Text style={SS.cancelNoteText}>{t.scheduleModal.cancelNote}</Text>
           </View>
           <TouchableOpacity
             style={[SS.confirmBtn, !selectedSlot && SS.confirmBtnDisabled]}
@@ -267,15 +269,15 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
             disabled={!selectedSlot}
             activeOpacity={0.8}
           >
-            <Text style={SS.confirmBtnText}>Confirm</Text>
+            <Text style={SS.confirmBtnText}>{t.scheduleModal.confirm}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* View items bottom sheet */}
       <BottomSheet visible={showViewItems} onClose={() => setShowViewItems(false)} height={420}>
-        <Text style={SS.sheetTitle}>Shipment 1 of 1</Text>
-        <Text style={SS.sheetSub}>{cartItems.length} items</Text>
+        <Text style={SS.sheetTitle}>{t.scheduleModal.shipmentOneOfOne}</Text>
+        <Text style={SS.sheetSub}>{t.scheduleModal.itemsCountLower(cartItems.length)}</Text>
         <ScrollView style={{ marginTop: 14 }} showsVerticalScrollIndicator={false}>
           {cartItems.map(item => (
             <View key={item.id} style={SS.sheetItemRow}>
@@ -283,7 +285,7 @@ export default function ScheduleOrderModal({ visible, onClose, onConfirm, cartIt
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={SS.sheetItemName}>{item.name}</Text>
                 <Text style={SS.sheetItemQty}>
-                  {item.weight} X {item.quantity} piece(s)
+                  {t.scheduleModal.weightByQty(item.weight, item.quantity)}
                 </Text>
               </View>
             </View>

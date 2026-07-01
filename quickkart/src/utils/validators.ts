@@ -1,32 +1,35 @@
+import type { TranslationSchema } from '../localization/strings';
+
 export function validateSignUp(
     name: string,
     contact: string,
     email: string,
     password: string,
-    confirmPassword: string
+    confirmPassword: string,
+    t: TranslationSchema
 ) {
     const errors: any = {};
-    if (!name) errors.name = "Name is required";
-    if (!contact) errors.contact = "Contact is required";
-    if (!email.includes("@")) errors.email = "Email is invalid";
-    if (password.length < 6) errors.password = "Password must be at least 6 characters";
-    if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match";
+    if (!name) errors.name = t.validators.nameRequired;
+    if (!contact) errors.contact = t.validators.contactRequired;
+    if (!email.includes("@")) errors.email = t.validators.emailInvalid;
+    if (password.length < 6) errors.password = t.validators.passwordMinLength;
+    if (password !== confirmPassword) errors.confirmPassword = t.validators.passwordsDoNotMatch;
     return errors;
 }
 
-export function validateLogin(email: string, password: string){
+export function validateLogin(email: string, password: string, t: TranslationSchema){
     const errors: any = {};
     if(!email){
-        errors.email = "Email is required";
+        errors.email = t.validators.emailRequired;
     }else if(!email.includes("@")){
-        errors.email = "Invalid email";
+        errors.email = t.validators.invalidEmail;
     }
 
     if(!password){
-        errors.password = "Password is required";
+        errors.password = t.validators.passwordRequired;
     }
     else if (password.length < 6){
-        errors.password = "Password must be at least 6 characters";
+        errors.password = t.validators.passwordMinLength;
     }
     return errors;
 }

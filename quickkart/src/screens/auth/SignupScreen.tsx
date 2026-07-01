@@ -11,6 +11,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { auth, db } from '../../../firebase.native';
 import { validateSignUp } from '../../utils/validators';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PURPLE = '#35035C';
 const SALMON = '#E05832';
@@ -81,6 +82,7 @@ function FloatingLabelInput({
 
 export default function SignupScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [name, setName]                     = useState('');
   const [contact, setContact]               = useState('');
   const [email, setEmail]                   = useState('');
@@ -91,10 +93,10 @@ export default function SignupScreen() {
   const [formError, setFormError]           = useState('');
 
   const handleSignUp = async () => {
-    const validationError = validateSignUp(name, contact, email, password, confirmPassword);
+    const validationError = validateSignUp(name, contact, email, password, confirmPassword, t);
     setError(validationError || {});
     if (Object.keys(validationError || {}).length > 0) {
-      setFormError('Please fix the highlighted fields.');
+      setFormError(t.auth.pleaseFixFields);
       return;
     }
     setFormError('');
@@ -104,7 +106,7 @@ export default function SignupScreen() {
       await setDoc(doc(db, 'users', user.uid), { name, contact, email, createdAt: new Date() });
       navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     } catch (e: any) {
-      setFormError(e.message || 'Failed to create an account. Please try again.');
+      setFormError(e.message || t.auth.failedToCreateAccount);
     } finally {
       setLoading(false);
     }
@@ -124,26 +126,26 @@ export default function SignupScreen() {
           resizeMode="contain"
         />
 
-        <Text style={s.heading}>Create an Account</Text>
-        <Text style={s.subheading}>Join QuickKart and start shopping</Text>
+        <Text style={s.heading}>{t.auth.createAnAccount}</Text>
+        <Text style={s.subheading}>{t.auth.joinAndStartShopping}</Text>
 
         <View style={s.form}>
           <FloatingLabelInput
-            label="Full Name"
+            label={t.auth.fullNameLabel}
             value={name}
             onChangeText={setName}
             error={error.name}
             autoCapitalize="words"
           />
           <FloatingLabelInput
-            label="Phone Number"
+            label={t.auth.phoneNumberLabel}
             value={contact}
             onChangeText={setContact}
             error={error.contact}
             keyboardType="phone-pad"
           />
           <FloatingLabelInput
-            label="Email"
+            label={t.auth.emailLabel}
             value={email}
             onChangeText={setEmail}
             error={error.email}
@@ -151,14 +153,14 @@ export default function SignupScreen() {
             autoCapitalize="none"
           />
           <FloatingLabelInput
-            label="Password"
+            label={t.auth.passwordLabel}
             value={password}
             onChangeText={setPassword}
             error={error.password}
             isPassword
           />
           <FloatingLabelInput
-            label="Confirm Password"
+            label={t.auth.confirmPasswordLabel}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             error={error.confirmPassword}
@@ -174,13 +176,13 @@ export default function SignupScreen() {
           disabled={loading}
           activeOpacity={0.85}
         >
-          <Text style={s.btnText}>{loading ? 'Creating account...' : 'Sign Up'}</Text>
+          <Text style={s.btnText}>{loading ? t.auth.creatingAccount : t.auth.signUpButton}</Text>
         </TouchableOpacity>
 
         <View style={s.footer}>
-          <Text style={s.footerText}>Already have an account?</Text>
+          <Text style={s.footerText}>{t.auth.alreadyHaveAccount}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={s.footerLink}> Log In</Text>
+            <Text style={s.footerLink}>{t.auth.logIn}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

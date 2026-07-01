@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSinglePress } from '../hooks/useSinglePress';
 import type { RootStackParamList } from '../navigation/types';
+import { useTranslation } from '../localization/LanguageContext';
 
 interface SeeAllButtonProps {
   category: string;
@@ -13,6 +14,7 @@ interface SeeAllButtonProps {
 
 export default function SeeAllButton({ category, categoryTitle }: SeeAllButtonProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const handlePress = useSinglePress(() =>
     navigation.navigate('CategoryDetail', { category, categoryTitle })
   );
@@ -23,7 +25,7 @@ export default function SeeAllButton({ category, categoryTitle }: SeeAllButtonPr
       activeOpacity={0.7}
       onPress={handlePress}
     >
-      <Text style={styles.label}>See all</Text>
+      <Text style={styles.label}>{t.common.seeAllPlain}</Text>
       <Ionicons name="chevron-forward" size={16} color="#111" />
     </TouchableOpacity>
   );

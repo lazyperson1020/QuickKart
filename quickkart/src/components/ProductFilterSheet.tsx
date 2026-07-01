@@ -6,10 +6,9 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-// FIXED: Import Gesture elements to replace the broken PanResponder
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import BottomSheet from './BottomSheet';
+import { useTranslation } from '../localization/LanguageContext';
 
 export interface FilterOptions {
   sortBy: 'default' | 'price_asc' | 'price_desc' | 'discount';
@@ -33,7 +32,7 @@ interface ProductFilterSheetProps {
   onApply: (filters: FilterOptions) => void;
   availableBrands: string[];
   currentFilters: FilterOptions;
-  totalProductsCount?: number; 
+  totalProductsCount?: number;
 }
 
 type FilterTab = 'brand' | 'price' | 'more';
@@ -46,6 +45,7 @@ export default function ProductFilterSheet({
   currentFilters,
   totalProductsCount,
 }: ProductFilterSheetProps) {
+  const { t } = useTranslation();
   const [local, setLocal] = useState<FilterOptions>(currentFilters);
   const [activeTab, setActiveTab] = useState<FilterTab>('brand');
   const [priceInput, setPriceInput] = useState(
@@ -109,8 +109,7 @@ export default function ProductFilterSheet({
       case 'price':
         return (
           <View style={styles.paneContent}>
-            <Text style={styles.paneSectionHeading}>Select max price</Text>
-            {/* FIXED: Price slider initialized with clean state routing channels */}
+            <Text style={styles.paneSectionHeading}>{t.productFilterSheet.selectMaxPrice}</Text>
             <PriceSlider
               value={priceInput ? Number(priceInput) : 0}
               onChange={(v) => setPriceInput(v > 0 ? String(v) : '')}
@@ -125,7 +124,7 @@ export default function ProductFilterSheet({
               style={styles.toggleRow}
               onPress={() => setLocal((p) => ({ ...p, inStockOnly: !p.inStockOnly }))}
             >
-              <Text style={styles.toggleLabel}>In Stock Only</Text>
+              <Text style={styles.toggleLabel}>{t.productFilterSheet.inStockOnly}</Text>
               <View style={[styles.toggle, local.inStockOnly && styles.toggleOn]}>
                 <View style={[styles.toggleThumb, local.inStockOnly && styles.toggleThumbOn]} />
               </View>
@@ -135,7 +134,7 @@ export default function ProductFilterSheet({
               style={styles.toggleRow}
               onPress={() => setLocal((p) => ({ ...p, offersOnly: !p.offersOnly }))}
             >
-              <Text style={styles.toggleLabel}>Offers Only</Text>
+              <Text style={styles.toggleLabel}>{t.productFilterSheet.offersOnly}</Text>
               <View style={[styles.toggle, local.offersOnly && styles.toggleOn]}>
                 <View style={[styles.toggleThumb, local.offersOnly && styles.toggleThumbOn]} />
               </View>
@@ -148,7 +147,7 @@ export default function ProductFilterSheet({
   return (
     <BottomSheet visible={visible} onClose={onClose} height={600}>
       <View style={styles.sheetHeader}>
-        <Text style={styles.sheetTitle}>Filters</Text>
+        <Text style={styles.sheetTitle}>{t.productFilterSheet.filters}</Text>
       </View>
       <View style={styles.divider} />
 
@@ -160,7 +159,7 @@ export default function ProductFilterSheet({
           >
             <View style={styles.tabContentRow}>
               <Text style={[styles.tabText, activeTab === 'brand' && styles.activeTabText]}>
-                Brand
+                {t.categoryDetail.brand}
               </Text>
               {isBrandActive && <View style={styles.activeDotIndicator} />}
             </View>
@@ -172,7 +171,7 @@ export default function ProductFilterSheet({
           >
             <View style={styles.tabContentRow}>
               <Text style={[styles.tabText, activeTab === 'price' && styles.activeTabText]}>
-                Price
+                {t.searchResults.priceChipLabel}
               </Text>
               {isPriceActive && <View style={styles.activeDotIndicator} />}
             </View>
@@ -184,7 +183,7 @@ export default function ProductFilterSheet({
           >
             <View style={styles.tabContentRow}>
               <Text style={[styles.tabText, activeTab === 'more' && styles.activeTabText]}>
-                More Filters
+                {t.productFilterSheet.moreFilters}
               </Text>
               {isMoreActive && <View style={styles.activeDotIndicator} />}
             </View>
@@ -198,14 +197,14 @@ export default function ProductFilterSheet({
 
       <View style={styles.footerActionContainer}>
         <TouchableOpacity style={styles.clearAllBtn} onPress={handleReset}>
-          <Text style={styles.clearAllBtnText}>Clear all</Text>
+          <Text style={styles.clearAllBtnText}>{t.productFilterSheet.clearAll}</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.showProductsBtn} onPress={handleApply}>
           <Text style={styles.showProductsBtnText}>
-            {totalProductsCount !== undefined 
-              ? `Show ${totalProductsCount} products` 
-              : 'Show products'}
+            {totalProductsCount !== undefined
+              ? t.productFilterSheet.showProductsCount(totalProductsCount)
+              : t.productFilterSheet.showProducts}
           </Text>
         </TouchableOpacity>
       </View>
@@ -215,72 +214,81 @@ export default function ProductFilterSheet({
 
 const MAX_PRICE = 1000;
 
-// FIXED: Completely re-engineered using Reanimated 3 and Gesture.Pan() to isolate horizontal sliders
 function PriceSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthRef = useRef(0);
+  const isDragging = useRef(false);
+  const lastPriceRef = useRef(value);
   const sliderPositionX = useSharedValue(0);
+  const [displayPrice, setDisplayPrice] = useState(value);
 
-  // Sync incoming state value with our shared value positions cleanly
+  // Sync from parent only when not actively dragging (e.g. on reset)
   useEffect(() => {
-    if (trackWidth > 0) {
-      const initialProgress = Math.max(0, Math.min(value, MAX_PRICE)) / MAX_PRICE;
-      sliderPositionX.value = initialProgress * trackWidth;
+    if (!isDragging.current && trackWidthRef.current > 0) {
+      sliderPositionX.value = (Math.max(0, Math.min(value, MAX_PRICE)) / MAX_PRICE) * trackWidthRef.current;
+      setDisplayPrice(value);
     }
-  }, [value, trackWidth]);
+  }, [value]);
 
-  const updatePriceFromX = (xPosition: number) => {
-    'worklet';
-    if (trackWidth === 0) return;
-    const clampedX = Math.max(0, Math.min(xPosition, trackWidth));
-    const calculatedPrice = Math.round((clampedX / trackWidth) * MAX_PRICE);
-    runOnJS(onChange)(calculatedPrice);
+  const handleMove = (locationX: number) => {
+    const tw = trackWidthRef.current;
+    if (tw === 0) return;
+    isDragging.current = true;
+    // subtract 12 to offset the 12px left margin on the track
+    const x = Math.max(0, Math.min(locationX - 12, tw));
+    sliderPositionX.value = x;
+    const price = Math.round((x / tw) * MAX_PRICE);
+    lastPriceRef.current = price;
+    setDisplayPrice(price);
   };
 
-  // Pan Gesture config isolated exclusively to the horizontal slider axis
-  const sliderPanGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10]) // Claims priority over vertical sheet swipes
-    .onStart((event) => {
-      sliderPositionX.value = Math.max(0, Math.min(event.x, trackWidth));
-      updatePriceFromX(sliderPositionX.value);
-    })
-    .onChange((event) => {
-      sliderPositionX.value = Math.max(0, Math.min(event.x, trackWidth));
-      updatePriceFromX(sliderPositionX.value);
-    });
+  const handleRelease = () => {
+    isDragging.current = false;
+    onChange(lastPriceRef.current);
+  };
 
   const animatedProgressStyle = useAnimatedStyle(() => ({
     width: sliderPositionX.value,
   }));
 
   const animatedThumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: sliderPositionX.value - 12 }],
+    transform: [{ translateX: sliderPositionX.value }],
   }));
 
   return (
     <View style={{ paddingTop: 16, paddingBottom: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: '800', color: '#E91E63', textAlign: 'center', marginBottom: 24 }}>
-        ₹{value || 0}
+        ₹{displayPrice || 0}
       </Text>
 
-      <GestureDetector gesture={sliderPanGesture}>
-        <View 
-          style={{ height: 30, justifyContent: 'center', backgroundColor: 'transparent' }}
-          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width - 16)} // Adjust for track margins safely
-        >
-          <View style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginHorizontal: 8 }}>
-            <Animated.View style={[{ position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#E91E63', borderRadius: 2 }, animatedProgressStyle]} />
-            <Animated.View style={[{
-              position: 'absolute', top: -10, left: 8,
-              width: 24, height: 24, borderRadius: 12,
-              backgroundColor: '#E91E63',
-              elevation: 4,
-              shadowColor: '#E91E63', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4,
-            }, animatedThumbStyle]} />
-          </View>
+      <View
+        style={{ height: 44, justifyContent: 'center' }}
+        onLayout={(e) => {
+          const tw = Math.max(0, e.nativeEvent.layout.width - 24);
+          trackWidthRef.current = tw;
+          if (!isDragging.current) {
+            sliderPositionX.value = (Math.max(0, Math.min(value, MAX_PRICE)) / MAX_PRICE) * tw;
+          }
+        }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(e) => handleMove(e.nativeEvent.locationX)}
+        onResponderMove={(e) => handleMove(e.nativeEvent.locationX)}
+        onResponderRelease={handleRelease}
+        onResponderTerminate={handleRelease}
+      >
+        <View style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginHorizontal: 12 }}>
+          <Animated.View style={[{ position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#E91E63', borderRadius: 2 }, animatedProgressStyle]} />
+          <Animated.View style={[{
+            position: 'absolute', top: -10, left: -12,
+            width: 24, height: 24, borderRadius: 12,
+            backgroundColor: '#E91E63',
+            elevation: 4,
+            shadowColor: '#E91E63', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4,
+          }, animatedThumbStyle]} />
         </View>
-      </GestureDetector>
+      </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 8, marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 4 }}>
         <Text style={{ fontSize: 11, color: '#999' }}>₹0</Text>
         <Text style={{ fontSize: 11, color: '#999' }}>₹{MAX_PRICE}</Text>
       </View>
@@ -288,7 +296,6 @@ function PriceSlider({ value, onChange }: { value: number; onChange: (v: number)
   );
 }
 
-// ... keeping your identical styles object cleanly below unchanged ...
 const styles = StyleSheet.create({
   sheetHeader: {
     paddingVertical: 4,
@@ -302,12 +309,12 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginHorizontal: -20, 
+    marginHorizontal: -20,
   },
   splitBodyWrapper: {
     flex: 1,
     flexDirection: 'row',
-    marginHorizontal: -20, 
+    marginHorizontal: -20,
   },
   leftSidebar: {
     flex: 0.38,
@@ -329,7 +336,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   activeTabButton: {
-    backgroundColor: '#FFF2F6', 
+    backgroundColor: '#FFF2F6',
     borderLeftWidth: 4,
     borderLeftColor: '#E91E63',
   },

@@ -5,12 +5,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { useTranslation } from '../../localization/LanguageContext';
 
 const PINK = '#E91E8C';
 const PURPLE = '#7C3AED';
 
 export default function ManagePaymentsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F5' }}>
@@ -19,7 +21,7 @@ export default function ManagePaymentsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
           <Ionicons name="chevron-back" size={20} color="#111" />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Manage Payments</Text>
+        <Text style={S.headerTitle}>{t.managePayments.headerTitle}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -27,7 +29,7 @@ export default function ManagePaymentsScreen() {
 
         {/* Zepto UPI heading */}
         <View style={S.upiHeading}>
-          <Text style={S.zeptoWord}>zepto</Text>
+          <Text style={S.zeptoWord}>QuickKart</Text>
           <Text style={S.upiWord}> UPI</Text>
           <Text style={S.upiFlag}>▶</Text>
         </View>
@@ -40,40 +42,40 @@ export default function ManagePaymentsScreen() {
               <Text style={S.upiSmall}>UPI</Text>
             </View>
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={S.cardTitle}>Zepto UPI Management</Text>
-              <Text style={S.cardSub}>Manage everything related to Zepto UPI</Text>
+              <Text style={S.cardTitle}>{t.managePayments.upiManagementTitle}</Text>
+              <Text style={S.cardSub}>{t.managePayments.upiManagementSub}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={PINK} />
           </TouchableOpacity>
         </View>
 
         {/* Wallets */}
-        <Text style={S.sectionLabel}>Wallets</Text>
+        <Text style={S.sectionLabel}>{t.managePayments.wallets}</Text>
         <View style={S.card}>
           <TouchableOpacity style={S.cardRow} activeOpacity={0.7}>
             <View style={S.payLogoBox}>
               <Text style={S.payText}>pay</Text>
               <View style={S.paySmile} />
             </View>
-            <Text style={[S.cardTitle, { flex: 1, marginLeft: 14 }]}>Amazon Pay Balance</Text>
+            <Text style={[S.cardTitle, { flex: 1, marginLeft: 14 }]}>{t.managePayments.amazonPayBalance}</Text>
             <View style={S.linkRow}>
-              <Text style={S.linkText}>Link</Text>
+              <Text style={S.linkText}>{t.managePayments.link}</Text>
               <Ionicons name="chevron-forward" size={14} color={PINK} />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Pay Later */}
-        <Text style={S.sectionLabel}>Pay Later</Text>
+        <Text style={S.sectionLabel}>{t.managePayments.payLater}</Text>
         <View style={S.card}>
           <TouchableOpacity style={S.cardRow} activeOpacity={0.7}>
             <View style={S.payLogoBox}>
               <Text style={S.payText}>pay</Text>
               <View style={S.paySmile} />
             </View>
-            <Text style={[S.cardTitle, { flex: 1, marginLeft: 14 }]}>Amazon Pay Later</Text>
+            <Text style={[S.cardTitle, { flex: 1, marginLeft: 14 }]}>{t.managePayments.amazonPayLater}</Text>
             <View style={S.linkRow}>
-              <Text style={S.linkText}>Link</Text>
+              <Text style={S.linkText}>{t.managePayments.link}</Text>
               <Ionicons name="chevron-forward" size={14} color={PINK} />
             </View>
           </TouchableOpacity>

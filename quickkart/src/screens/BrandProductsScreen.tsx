@@ -15,18 +15,20 @@ import { GroceryProduct } from '../components/productCard';
 import ProductGridCard from '../components/ProductGridCard';
 import FloatingCartPanel from '../components/FloatingCartPanel';
 import { globalBottomBarVisible } from '../navigation/tabBarShared';
+import { useTranslation } from '../localization/LanguageContext';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE_PAD = 12;
 const COL_GAP = 12;
 const CARD_W = Math.floor((SCREEN_W - SIDE_PAD * 2 - COL_GAP) / 2);
 
-const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics'];
+const DB_CATS = ['Dairy', 'Fresh', 'Snacks', 'Electronics', 'Drinks', 'Grocery', 'Fashion', 'Beauty', 'Health', 'Household', 'Stores'];
 
 export default function BrandProductsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'BrandProducts'>>();
   const { brand } = route.params as { brand: string };
+  const { t } = useTranslation();
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,8 +88,8 @@ export default function BrandProductsScreen() {
         <ActivityIndicator size="large" color="#E91E8C" style={{ marginTop: 48 }} />
       ) : products.length === 0 ? (
         <View style={S.empty}>
-          <Text style={S.emptyTitle}>No products found</Text>
-          <Text style={S.emptySub}>We couldn't find any products from {brand}.</Text>
+          <Text style={S.emptyTitle}>{t.brandProducts.noProductsFound}</Text>
+          <Text style={S.emptySub}>{t.brandProducts.noProductsFromBrand(brand)}</Text>
         </View>
       ) : (
         <FlatList
@@ -104,7 +106,7 @@ export default function BrandProductsScreen() {
           columnWrapperStyle={{ gap: COL_GAP }}
           ListHeaderComponent={
             <View style={S.countRow}>
-              <Text style={S.countText}>{products.length} product{products.length !== 1 ? 's' : ''}</Text>
+              <Text style={S.countText}>{t.brandProducts.productsCount(products.length)}</Text>
             </View>
           }
           renderItem={({ item }) => (

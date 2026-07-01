@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 interface BillSummaryProps {
   itemTotal: number;
@@ -14,6 +15,7 @@ interface BillSummaryProps {
 const ORIG_HANDLING = 10;
 
 export default function BillSummary({ itemTotal, originalItemTotal, deliveryFee, savings, totalSavings, tipAmount = 0 }: BillSummaryProps) {
+  const { t } = useTranslation();
   const deliveryUnlock = Math.max(0, 99 - itemTotal);
   const actualTotalPay = itemTotal + deliveryFee + tipAmount;
   const originalTotalPay = originalItemTotal + deliveryFee + ORIG_HANDLING;
@@ -23,38 +25,38 @@ export default function BillSummary({ itemTotal, originalItemTotal, deliveryFee,
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
         <Ionicons name="grid-outline" size={16} color="#35035C" style={{ marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#111' }}>Bill Summary</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#111' }}>{t.billSummary.title}</Text>
       </View>
 
       {/* Item Total */}
       <BillRow
-        label="Item Total"
+        label={t.billSummary.itemTotal}
         originalValue={originalItemTotal > itemTotal ? `₹${originalItemTotal}` : undefined}
         value={`₹${itemTotal}`}
       />
 
       {/* Delivery Fee */}
       <BillRow
-        label="Delivery Fee"
-        value={deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+        label={t.billSummary.deliveryFee}
+        value={deliveryFee === 0 ? t.billSummary.free : `₹${deliveryFee}`}
         isFree={deliveryFee === 0}
         note={deliveryFee > 0 && deliveryUnlock > 0
-          ? `Free above ₹99 (Unlock by adding ₹${deliveryUnlock} more)`
+          ? t.billSummary.freeAboveNote(deliveryUnlock)
           : undefined}
       />
 
       {/* Handling Fee */}
       <BillRow
-        label="Handling Fee"
+        label={t.billSummary.handlingFee}
         originalValue={`₹${ORIG_HANDLING}`}
-        value="FREE"
+        value={t.billSummary.free}
         isFree
       />
 
       {/* Delivery Tip */}
       {tipAmount > 0 && (
         <BillRow
-          label="Delivery Tip"
+          label={t.billSummary.deliveryTip}
           value={`₹${tipAmount}`}
           icon="heart-circle-outline"
           iconColor="#e91e63"
@@ -65,7 +67,7 @@ export default function BillSummary({ itemTotal, originalItemTotal, deliveryFee,
 
       {/* To Pay */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={{ fontWeight: '700', fontSize: 16, color: '#111' }}>To Pay</Text>
+        <Text style={{ fontWeight: '700', fontSize: 16, color: '#111' }}>{t.billSummary.toPay}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           {originalTotalPay > actualTotalPay && (
             <Text style={{ fontSize: 13, color: '#999', textDecorationLine: 'line-through' }}>₹{originalTotalPay}</Text>
@@ -78,7 +80,7 @@ export default function BillSummary({ itemTotal, originalItemTotal, deliveryFee,
       {totalSavings > 0 && (
         <View style={{ backgroundColor: '#F0FFF4', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#C8E6C9' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: savings > 0 ? 10 : 0 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111' }}>Savings on this order</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111' }}>{t.billSummary.savingsOnOrder}</Text>
             <View style={{ backgroundColor: '#2e7d32', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
               <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>₹{totalSavings}</Text>
             </View>
@@ -87,7 +89,7 @@ export default function BillSummary({ itemTotal, originalItemTotal, deliveryFee,
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="checkmark-circle-outline" size={14} color="#2e7d32" />
-                <Text style={{ fontSize: 13, color: '#555' }}>Discount on MRP</Text>
+                <Text style={{ fontSize: 13, color: '#555' }}>{t.billSummary.discountOnMrp}</Text>
               </View>
               <Text style={{ fontSize: 13, fontWeight: '600', color: '#111' }}>₹{savings}</Text>
             </View>

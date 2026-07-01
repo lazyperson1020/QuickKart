@@ -20,6 +20,7 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import ViewShot from 'react-native-view-shot';
 import Share from 'react-native-share';
+import { useTranslation } from '../localization/LanguageContext';
 
 interface Props {
   visible: boolean;
@@ -38,6 +39,7 @@ export default function ShareProductSheet({
   productPrice,
   category,
 }: Props) {
+  const { t } = useTranslation();
   const viewShotRef = useRef<ViewShot>(null);
   const [sharing, setSharing] = React.useState(false);
 
@@ -53,7 +55,7 @@ export default function ShareProductSheet({
       await Share.open({
         url: Platform.OS === 'android' ? `file://${uri}` : uri,
         type: 'image/png',
-        message: `${productName} — Rs. ${productPrice}\nScan to open in QuickKart`,
+        message: t.shareProduct.shareMessage(productName, productPrice),
         failOnCancel: false,
       });
     } catch {
@@ -75,14 +77,14 @@ export default function ShareProductSheet({
       <View style={styles.sheet}>
         <View style={styles.handle} />
 
-        <Text style={styles.title}>Share Product</Text>
+        <Text style={styles.title}>{t.shareProduct.title}</Text>
         <Text style={styles.subtitle} numberOfLines={2}>{productName}</Text>
-        <Text style={styles.price}>Rs. {productPrice}</Text>
+        <Text style={styles.price}>{t.shareProduct.priceLabel(productPrice)}</Text>
 
         {/* QR code card — this is what gets captured and shared as image */}
         <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={styles.qrCard}>
           <QRCode value={deepLink} size={180} />
-          <Text style={styles.qrLabel}>Scan to open in QuickKart</Text>
+          <Text style={styles.qrLabel}>{t.shareProduct.scanToOpen}</Text>
           <Text style={styles.qrProductName} numberOfLines={2}>{productName}</Text>
         </ViewShot>
 
@@ -93,12 +95,12 @@ export default function ShareProductSheet({
         >
           {sharing
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.shareBtnText}>Share QR Code</Text>
+            : <Text style={styles.shareBtnText}>{t.shareProduct.shareQrCode}</Text>
           }
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={styles.cancelText}>{t.common.cancel}</Text>
         </TouchableOpacity>
       </View>
     </Modal>

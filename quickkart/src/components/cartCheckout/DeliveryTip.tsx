@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from '../../localization/LanguageContext';
 
 interface Props {
   selectedTip: number;
@@ -10,6 +11,7 @@ interface Props {
 const tips = [10, 20, 50];
 
 export default function DeliveryTip({ selectedTip, onSelectTip }: Props) {
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -43,10 +45,10 @@ export default function DeliveryTip({ selectedTip, onSelectTip }: Props) {
           </View>
           <View>
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#111' }}>
-              Tip Delivery Partner
+              {t.deliveryTip.tipDeliveryPartner}
             </Text>
             <Text style={{ color: '#999', fontSize: 12, marginTop: 1 }}>
-              100% goes directly to them
+              {t.deliveryTip.subtitle}
             </Text>
           </View>
         </View>
@@ -54,7 +56,7 @@ export default function DeliveryTip({ selectedTip, onSelectTip }: Props) {
         {/* Clear Option Button */}
         {selectedTip > 0 && (
           <TouchableOpacity onPress={() => onSelectTip(0)} activeOpacity={0.7}>
-            <Text style={{ color: '#e91e63', fontSize: 13, fontWeight: '700' }}>Clear</Text>
+            <Text style={{ color: '#e91e63', fontSize: 13, fontWeight: '700' }}>{t.deliveryTip.clear}</Text>
           </TouchableOpacity>
         )}
       </View>

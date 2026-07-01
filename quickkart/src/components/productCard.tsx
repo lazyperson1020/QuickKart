@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -13,6 +13,7 @@ import { useSinglePress } from '../hooks/useSinglePress';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { registerForPushNotificationsAsync } from '../utils/registerPushNotifications';
+import { useTranslation } from '../localization/LanguageContext';
 export interface GroceryProduct {
   id: string;
   sku?: string;
@@ -20,6 +21,8 @@ export interface GroceryProduct {
   price: number;
   originalPrice: number;
   imageUrl: string;
+  imageUrl1?: string;
+  imageUrl2?: string;
   weight: string;
   position?: number;
   stock: number;
@@ -31,13 +34,11 @@ export interface GroceryProduct {
   description: string;
 }
 
-export default function ProductCard({ product, cardWidth = 130 }: { product: GroceryProduct; cardWidth?: number }) {
+function ProductCardInner({ product, cardWidth = 130 }: { product: GroceryProduct; cardWidth?: number }) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
-  const cart = useSelector((state: RootState) => state.cart);
-  const wishlist = useSelector((state: RootState) => state.wishlist);
-
-  const cartItem = cart.find((item) => item.id === product.id);
-  const isWishlisted = wishlist.some((item) => item.id === product.id);
+  const cartItem = useSelector((state: RootState) => state.cart.find((item) => item.id === product.id));
+  const isWishlisted = useSelector((state: RootState) => state.wishlist.some((item) => item.id === product.id));
   const savings = (product.originalPrice || 0) - (product.price || 0);
 
   const handleWishlist = useSinglePress(() => {
@@ -64,12 +65,12 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
   const handleNotify = useSinglePress(async () => {
     const user = auth.currentUser;
     if (!user) {
-      Toast.show({ type: 'error', text1: 'Please log in to get notifications', position: 'bottom' });
+      Toast.show({ type: 'error', text1: t.productCard.loginForNotifications, position: 'bottom' });
       return;
     }
     const token = await registerForPushNotificationsAsync();
     if (!token) {
-      Toast.show({ type: 'error', text1: 'Enable notifications in Settings', position: 'bottom' });
+      Toast.show({ type: 'error', text1: t.productCard.enableNotificationsInSettings, position: 'bottom' });
       return;
     }
     try {
@@ -85,9 +86,9 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
           subscribedAt: new Date().toISOString(),
         }),
       ]);
-      Toast.show({ type: 'success', text1: "We'll notify you when it's back!", position: 'bottom' });
+      Toast.show({ type: 'success', text1: t.productCard.willNotifyWhenBack, position: 'bottom' });
     } catch {
-      Toast.show({ type: 'error', text1: 'Failed to subscribe. Try again.', position: 'bottom' });
+      Toast.show({ type: 'error', text1: t.productCard.failedToSubscribe, position: 'bottom' });
     }
   });
 
@@ -96,8 +97,8 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
     type: 'error',
     text1:
       product.stock <= 0
-        ? 'This item is out of stock'
-        : `Only ${product.stock} unit(s) available`,
+        ? t.productCard.outOfStock
+        : t.cart.onlyUnitsAvailable(product.stock),
     position: 'bottom',
   });
 };
@@ -111,7 +112,7 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
           {product.stock <= 0 && (
             <View style={styles.soldOutBadge}>
               <Text style={styles.soldOutText}>
-                Sold Out
+                {t.stockBadge.soldOut}
               </Text>
             </View>
           )}
@@ -124,7 +125,7 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
                 opacity: 0.35,
               },
             ]}
-            resizeMode="cover"
+            resizeMode="contain"
           />
 
         {/* Wishlist heart — top-right */}
@@ -171,7 +172,7 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
               color="#e91e63"
             />
             <Text style={styles.notifyText}>
-              Notify
+              {t.productCard.notify}
             </Text>
           </Pressable>
         ) : (
@@ -180,7 +181,7 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
             onPress={handleAdd}
           >
             <Text style={styles.addButtonText}>
-              ADD
+              {t.productCard.add}
             </Text>
           </Pressable>
         )}
@@ -198,7 +199,7 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
           )}
         </View>
 
-        {savings > 0 && <Text style={styles.savingsText}>₹{savings} OFF</Text>}
+        {savings > 0 && <Text style={styles.savingsText}>{t.productCard.offAmount(savings)}</Text>}
 
         <Text style={styles.productName} numberOfLines={2}>
           {product.name}
@@ -209,6 +210,8 @@ export default function ProductCard({ product, cardWidth = 130 }: { product: Gro
     </View>
   );
 }
+
+export default memo(ProductCardInner);
 
 const styles = StyleSheet.create({
   cardContainer: {

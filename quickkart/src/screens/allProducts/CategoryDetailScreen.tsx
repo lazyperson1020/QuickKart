@@ -32,6 +32,7 @@ import ProductFilterSheet, {
 } from '../../components/ProductFilterSheet';
 import FloatingCartPanel from '../../components/FloatingCartPanel';
 import { globalLayoutScrollY, globalBottomBarVisible } from '../../navigation/tabBarShared';
+import { useTranslation } from '../../localization/LanguageContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,8 @@ interface Banner { id: string; imageUrl: string; position: number; }
 
 const SPRING = { damping: 15, stiffness: 130, mass: 0.5 };
 
-function buildSubcats(products: GroceryProduct[]): SubCatItem[] {
-  const all: SubCatItem = { id: 'all', label: 'All', imageUri: products[0]?.imageUrl };
+function buildSubcats(products: GroceryProduct[], allLabel: string): SubCatItem[] {
+  const all: SubCatItem = { id: 'all', label: allLabel, imageUri: products[0]?.imageUrl };
   const seen = new Map<string, SubCatItem>();
   for (const p of products) {
     const sub = p.subCategory;
@@ -54,10 +55,11 @@ function buildSubcats(products: GroceryProduct[]): SubCatItem[] {
 function applyFilters(
   products: GroceryProduct[],
   subcat: string,
-  filters: FilterOptions
+  filters: FilterOptions,
+  allowedSubcats?: string[],
 ): GroceryProduct[] {
   let result = subcat === 'all'
-    ? [...products]
+    ? allowedSubcats ? products.filter((p) => allowedSubcats.includes(p.subCategory ?? '')) : [...products]
     : products.filter((p) => p.subCategory === subcat);
 
   if (filters.brands.length > 0)
@@ -152,6 +154,7 @@ function FilterChipBar({
   onClearSubcat,
   onOpenSheet,
 }: FilterChipBarProps) {
+  const { t } = useTranslation();
   const activeCount = [
     filters.sortBy !== 'default',
     filters.brands.length > 0,
@@ -161,10 +164,10 @@ function FilterChipBar({
   ].filter(Boolean).length;
 
   const sortLabel =
-    filters.sortBy === 'price_asc' ? 'Price ↑'
-    : filters.sortBy === 'price_desc' ? 'Price ↓'
-    : filters.sortBy === 'discount' ? 'Discount'
-    : 'Sort';
+    filters.sortBy === 'price_asc' ? t.categoryDetail.priceAsc
+    : filters.sortBy === 'price_desc' ? t.categoryDetail.priceDesc
+    : filters.sortBy === 'discount' ? t.categoryDetail.discount
+    : t.categoryDetail.sort;
 
   const activeSubcatItem = subcats.find((s) => s.id === activeSubcat);
 
@@ -201,7 +204,7 @@ function FilterChipBar({
           onPress={onOpenSheet}
         >
           <Text style={[chipStyles.chipText, filters.brands.length > 0 && chipStyles.chipTextActive]}>
-            {filters.brands.length > 0 ? `Brand (${filters.brands.length})` : 'Brand'}
+            {filters.brands.length > 0 ? t.categoryDetail.brandCount(filters.brands.length) : t.categoryDetail.brand}
           </Text>
           <Ionicons name="chevron-down" size={12} color={filters.brands.length > 0 ? '#e91e63' : '#666'} />
         </TouchableOpacity>
@@ -218,7 +221,7 @@ function FilterChipBar({
           style={[chipStyles.chip, filters.offersOnly && chipStyles.chipActive]}
           onPress={() => setFilters((f) => ({ ...f, offersOnly: !f.offersOnly }))}
         >
-          <Text style={[chipStyles.chipText, filters.offersOnly && chipStyles.chipTextActive]}>Offers</Text>
+          <Text style={[chipStyles.chipText, filters.offersOnly && chipStyles.chipTextActive]}>{t.categoryDetail.offers}</Text>
         </TouchableOpacity>
 
         {/* In Stock toggle */}
@@ -226,7 +229,7 @@ function FilterChipBar({
           style={[chipStyles.chip, filters.inStockOnly && chipStyles.chipActive]}
           onPress={() => setFilters((f) => ({ ...f, inStockOnly: !f.inStockOnly }))}
         >
-          <Text style={[chipStyles.chipText, filters.inStockOnly && chipStyles.chipTextActive]}>In Stock</Text>
+          <Text style={[chipStyles.chipText, filters.inStockOnly && chipStyles.chipTextActive]}>{t.categoryDetail.inStock}</Text>
         </TouchableOpacity>
 
         {/* Active subcategory chip */}
@@ -254,7 +257,7 @@ function FilterChipBar({
             onPress={() => setFilters(DEFAULT_FILTERS)}
           >
             <Ionicons name="close" size={13} color="#e91e63" />
-            <Text style={chipStyles.clearText}>Clear</Text>
+            <Text style={chipStyles.clearText}>{t.categoryDetail.clear}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -311,20 +314,26 @@ const chipStyles = StyleSheet.create({
 export default function CategoryDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
+  const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
-  const { category, categoryTitle } = route.params as {
+  const { category, categoryTitle, subCategory: initialSubcatParam } = route.params as {
     category: string;
     categoryTitle: string;
+    subCategory?: string;
   };
+
+  // Support comma-separated values e.g. "Tea,Coffee"
+  const initialSubcatList = initialSubcatParam ? initialSubcatParam.split(',').map(s => s.trim()) : null;
+  const initialSubcat = initialSubcatList?.length === 1 ? initialSubcatList[0] : undefined;
 
   const [products, setProducts] = useState<GroceryProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [selectedSubcat, setSelectedSubcat] = useState('all');
+  const [selectedSubcat, setSelectedSubcat] = useState(initialSubcat ?? 'all');
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
-  const title = categoryTitle ?? category ?? 'Products';
+  const title = categoryTitle ?? category ?? t.categoryDetail.defaultTitle;
 
   // Card dimensions
   const RIGHT_PAD = 8;
@@ -349,17 +358,23 @@ export default function CategoryDetailScreen() {
         setProducts(items);
         setLoading(false);
       },
-      (err) => { setFetchError(err?.message ?? 'Failed to load products.'); setLoading(false); }
+      (err) => { setFetchError(err?.message ?? t.products.failedToLoadProducts); setLoading(false); }
     );
     return unsubscribe;
   }, [category]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const subcats = useMemo(() => buildSubcats(products), [products]);
+  const subcats = useMemo(() => {
+    const all = buildSubcats(products, t.categoryDetail.allChip);
+    if (initialSubcatList) {
+      return all.filter(sc => sc.id === 'all' || initialSubcatList.includes(sc.id));
+    }
+    return all;
+  }, [products, initialSubcatParam, t]);
 
   const filtered = useMemo(
-    () => applyFilters(products, selectedSubcat, filters),
-    [products, selectedSubcat, filters]
+    () => applyFilters(products, selectedSubcat, filters, initialSubcatList ?? undefined),
+    [products, selectedSubcat, filters, initialSubcatParam]
   );
 
   const availableBrands = useMemo(
@@ -438,7 +453,7 @@ export default function CategoryDetailScreen() {
       <View style={styles.body}>
         {/* Left subcategory nav */}
         <SubCategoryNav
-          items={subcats.length > 0 ? subcats : [{ id: 'all', label: 'All' }]}
+          items={subcats.length > 0 ? subcats : [{ id: 'all', label: t.categoryDetail.allChip }]}
           selectedId={selectedSubcat}
           onSelect={setSelectedSubcat}
         />
@@ -471,7 +486,7 @@ export default function CategoryDetailScreen() {
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={ListHeader}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No products found.</Text>
+                <Text style={styles.emptyText}>{t.products.noProductsFound}</Text>
               }
               removeClippedSubviews
               onScroll={scrollHandler}

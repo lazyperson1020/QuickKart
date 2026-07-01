@@ -20,6 +20,7 @@ import {
   TAB_BAR_RAW_HEIGHT,
 } from '../navigation/tabBarShared';
 import type { RootStackParamList } from '../navigation/types';
+import { useTranslation } from '../localization/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const FULL_BAR_WIDTH = width - 24;
@@ -47,6 +48,7 @@ export function useCartPanelScrollHandler() {
 
 export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boolean }) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const cart = useSelector((state: RootState) => state.cart);
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -131,7 +133,7 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
                 borderRadius: 20,
               }}>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12, letterSpacing: 0.3 }}>
-                  Offers  ↑
+                  {t.home.offersToggle}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -152,10 +154,10 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
               }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }} numberOfLines={1}>
-                    Unlock free delivery
+                    {t.home.unlockFreeDelivery}
                   </Text>
                   <Text style={{ color: '#AAA', fontSize: 11, marginTop: 1 }} numberOfLines={1}>
-                    {cartTotal >= 99 ? 'Free delivery unlocked!' : `Shop ₹${99 - cartTotal} more`}
+                    {cartTotal >= 99 ? t.floatingCartPanel.freeDeliveryUnlocked : t.home.shopMoreForDelivery(99 - cartTotal)}
                   </Text>
                 </View>
               </View>
@@ -237,9 +239,9 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
                 </View>
               ) : null}
               <View style={{ alignItems: 'flex-start' }}>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, lineHeight: 17 }}>Cart</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, lineHeight: 17 }}>{t.home.cartLabel}</Text>
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, lineHeight: 14 }}>
-                  {cartCount} item{cartCount !== 1 ? 's' : ''}
+                  {t.home.itemsCount(cartCount)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -251,9 +253,9 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
       {/* Offers Bottom Sheet */}
       <BottomSheet visible={showOffers} onClose={() => setShowOffers(false)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>Offers For You</Text>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>{t.home.offersForYou}</Text>
           <View style={{ backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#555' }}>3 offers</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#555' }}>{t.home.offersCountLabel}</Text>
           </View>
         </View>
 
@@ -263,15 +265,15 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Text style={{ fontSize: 22 }}>🚚</Text>
                 <View>
-                  <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>Free Delivery</Text>
+                  <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.freeDelivery}</Text>
                   <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
-                    {cartTotal >= 99 ? 'Unlocked on this order!' : `Add ₹${99 - cartTotal} more to unlock`}
+                    {cartTotal >= 99 ? t.home.freeDeliveryUnlockedOnOrder : t.home.addMoreToUnlockDelivery(99 - cartTotal)}
                   </Text>
                 </View>
               </View>
               <View style={{ backgroundColor: cartTotal >= 99 ? '#4CAF50' : '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
                 <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>
-                  {cartTotal >= 99 ? 'Unlocked' : 'Locked'}
+                  {cartTotal >= 99 ? t.common.unlocked : t.common.locked}
                 </Text>
               </View>
             </View>
@@ -291,12 +293,12 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontSize: 22 }}>🏷️</Text>
               <View>
-                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>₹50 OFF</Text>
-                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>Shop for ₹599 more to apply</Text>
+                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.off50}</Text>
+                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{t.home.shopMoreFor50}</Text>
               </View>
             </View>
             <View style={{ backgroundColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>Locked</Text>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{t.common.locked}</Text>
             </View>
           </View>
         </View>
@@ -306,12 +308,12 @@ export default function FloatingCartPanel({ noNavBar = false }: { noNavBar?: boo
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontSize: 22 }}>🎁</Text>
               <View>
-                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>₹100 OFF</Text>
-                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>Shop for ₹1199 more to apply</Text>
+                <Text style={{ fontWeight: '800', fontSize: 15, color: '#111' }}>{t.home.off100}</Text>
+                <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{t.home.shopMoreFor100}</Text>
               </View>
             </View>
             <View style={{ backgroundColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>Locked</Text>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>{t.common.locked}</Text>
             </View>
           </View>
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../firebase.native';
 import { subscribeToStockTopic, unsubscribeFromStockTopic } from '../services/notificationService';
+import { useTranslation } from '../localization/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +64,7 @@ export default function ProductDetails() {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { productJson } = route.params as { productJson: string };
   const product: ProductWithDetails = JSON.parse(productJson ?? '{}');
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const cart = useSelector((state: RootState) => state.cart);
 
@@ -76,9 +78,19 @@ export default function ProductDetails() {
   const cartItem = cart.find((p) => p.id === product.id);
   const currentQuantity = cartItem ? cartItem.quantity : 0;
 
+  const productImages = useMemo(() => {
+    const urls = [product.imageUrl, product.imageUrl1, product.imageUrl2].filter(
+      (url): url is string => !!url && url.trim().length > 0
+    );
+    return urls.length > 0
+      ? urls
+      : ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=500'];
+  }, [product.imageUrl, product.imageUrl1, product.imageUrl2]);
+
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     if (product.stock > 0) return;
@@ -88,28 +100,29 @@ export default function ProductDetails() {
 
   const handleNotify = async () => {
     if (!auth.currentUser) {
-      Toast.show({ type: 'error', text1: 'Please log in to get notifications' });
+      Toast.show({ type: 'error', text1: t.productDetails.loginForNotifications });
       return;
     }
+    if (!product.sku) return;
     setNotifyLoading(true);
     try {
       if (isSubscribed) {
         await unsubscribeFromStockTopic(product.sku);
         await AsyncStorage.removeItem(`notify_sub_${product.sku}`);
         setIsSubscribed(false);
-        Toast.show({ type: 'info', text1: 'Notification cancelled' });
+        Toast.show({ type: 'info', text1: t.productDetails.notificationCancelled });
       } else {
         const granted = await subscribeToStockTopic(product.sku);
         if (!granted) {
-          Toast.show({ type: 'error', text1: 'Enable notifications in Settings' });
+          Toast.show({ type: 'error', text1: t.productDetails.enableNotificationsInSettings });
           return;
         }
         await AsyncStorage.setItem(`notify_sub_${product.sku}`, '1');
         setIsSubscribed(true);
-        Toast.show({ type: 'success', text1: "We'll notify you when it's back in stock!" });
+        Toast.show({ type: 'success', text1: t.productDetails.willNotifyWhenBackInStock });
       }
     } catch {
-      Toast.show({ type: 'error', text1: 'Something went wrong. Try again.' });
+      Toast.show({ type: 'error', text1: t.productDetails.somethingWentWrong });
     } finally {
       setNotifyLoading(false);
     }
@@ -163,6 +176,11 @@ export default function ProductDetails() {
 
   const handleShare = () => setShareVisible(true);
 
+  const handleImageScrollEnd = (event: any) => {
+    const index = Math.round(event.nativeEvent.contentOffset.x / width);
+    setActiveImageIndex(index);
+  };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
@@ -185,14 +203,38 @@ export default function ProductDetails() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Product Image Panel Stage Frame */}
         <View style={styles.imageStage}>
-          <Image
-            resizeMode="contain"
-            style={[styles.mainProductImage, product.stock <= 0 && styles.dimmedStockImage]}
-            source={{ uri: product.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }}
-          />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleImageScrollEnd}
+            style={styles.imageCarousel}
+          >
+            {productImages.map((uri, index) => (
+              <View key={`${uri}-${index}`} style={styles.imagePage}>
+                <Image
+                  resizeMode="contain"
+                  style={[styles.mainProductImage, product.stock <= 0 && styles.dimmedStockImage]}
+                  source={{ uri }}
+                />
+              </View>
+            ))}
+          </ScrollView>
+
           {discountPct > 0 && (
             <View style={styles.floatingDiscountBadge}>
-              <Text style={styles.floatingDiscountText}>{discountPct}% OFF</Text>
+              <Text style={styles.floatingDiscountText}>{t.productDetails.discountOff(discountPct)}</Text>
+            </View>
+          )}
+
+          {productImages.length > 1 && (
+            <View style={styles.paginationDotsRow}>
+              {productImages.map((_, index) => (
+                <View
+                  key={index}
+                  style={[styles.paginationDot, index === activeImageIndex && styles.paginationDotActive]}
+                />
+              ))}
             </View>
           )}
         </View>
@@ -215,12 +257,12 @@ export default function ProductDetails() {
                 style={styles.brandLogoThumb}
                 resizeMode="contain"
               />
-              <Text style={styles.brandLinkText}>View all {product.brand} products</Text>
+              <Text style={styles.brandLinkText}>{t.productDetails.viewAllBrandProducts(product.brand)}</Text>
               <Ionicons name="chevron-forward" size={16} color="#888" style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
           ) : null}
 
-          <Text style={styles.productMeasurementUnit}>{product.weight || '1 unit'}</Text>
+          <Text style={styles.productMeasurementUnit}>{product.weight || t.productDetails.weightFallback}</Text>
           
           {/* <View style={styles.horizontalSectionDivider} /> */}
 
@@ -233,7 +275,7 @@ export default function ProductDetails() {
                 <Text style={styles.crossedOriginalPrice}>₹{product.originalPrice}</Text>
               )}
             </View>
-            <Text style={styles.taxDisclaimerHint}>Inclusive of all taxes</Text>
+            <Text style={styles.taxDisclaimerHint}>{t.productDetails.inclusiveOfTaxes}</Text>
           </View>
 
           {/* Express Delivery ETA Strip */}
@@ -246,9 +288,9 @@ export default function ProductDetails() {
 
           {/* Detailed Product Specifications */}
           <View style={styles.productInformationAccordion}>
-            <Text style={styles.accordionHeadingTitle}>Product Details</Text>
+            <Text style={styles.accordionHeadingTitle}>{t.productDetails.productDetailsHeading}</Text>
             <Text style={styles.accordionBodyText}>
-              {product.description || 'Fresh stock sourced directly from verified regional fulfillment distribution clusters under temperature-regulated transport profiles.'}
+              {product.description}
             </Text>
           </View>
         </View>
@@ -277,7 +319,7 @@ export default function ProductDetails() {
 
                 {currentQuantity > 0 && (
                   <Animated.View style={[styles.capsulePriceTextStack, animatedCartContentOpacityStyle]}>
-                    <Text style={styles.viewCartActionText}>View Cart</Text>
+                    <Text style={styles.viewCartActionText}>{t.productDetails.viewCart}</Text>
                   </Animated.View>
                 )}
               </View>
@@ -299,7 +341,7 @@ export default function ProductDetails() {
                   style={styles.quantityStepTouch}
                   onPress={() => {
                     if (cartItem && cartItem.quantity >= product.stock) {
-                      Toast.show({ type: 'error', text1: 'Stock limit reached' });
+                      Toast.show({ type: 'error', text1: t.productDetails.stockLimitReached });
                       return;
                     }
                     dispatch(incrementQuantity(product));
@@ -321,7 +363,7 @@ export default function ProductDetails() {
                   color={isSubscribed ? '#ffffff' : ZEPTO_PURPLE}
                 />
                 <Text style={[styles.notifyMeButtonText, isSubscribed && styles.notifyMeButtonTextActive]}>
-                  {notifyLoading ? 'Please wait…' : isSubscribed ? 'Notified' : 'Notify Me'}
+                  {notifyLoading ? t.productDetails.pleaseWait : isSubscribed ? t.productDetails.notified : t.productDetails.notifyMe}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -330,7 +372,7 @@ export default function ProductDetails() {
                 activeOpacity={0.85}
                 onPress={() => dispatch(addProduct(product))}
               >
-                <Text style={styles.cleanZeptoAddButtonText}>Add to cart</Text>
+                <Text style={styles.cleanZeptoAddButtonText}>{t.productDetails.addToCart}</Text>
               </TouchableOpacity>
             )}
           </Animated.View>
@@ -382,10 +424,38 @@ const styles = StyleSheet.create({
     width: width,
     height: width * 0.88,
     backgroundColor: '#ffffff',
+    position: 'relative',
+  },
+  imageCarousel: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePage: {
+    width: width,
+    height: width * 0.88,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
     padding: 32,
+  },
+  paginationDotsRow: {
+    position: 'absolute',
+    bottom: 14,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#dcdce3',
+  },
+  paginationDotActive: {
+    width: 18,
+    backgroundColor: ZEPTO_PURPLE,
   },
   mainProductImage: {
     width: '100%',

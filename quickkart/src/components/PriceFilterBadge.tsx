@@ -1,6 +1,7 @@
 // components/PriceFilterBadge.tsx
 import React from 'react';
 import { TouchableOpacity, Image, StyleSheet, View, Text } from 'react-native';
+import { useTranslation } from '../localization/LanguageContext';
 
 interface Props {
   amount: number;
@@ -10,7 +11,8 @@ interface Props {
   onPress: () => void;
 }
 
-export default function PriceFilterBadge({ amount, label, imageUrl, onPress }: Props) {
+export default function PriceFilterBadge({ amount, label, imageUrl, active, onPress }: Props) {
+  const { t } = useTranslation();
   const isAll = amount === 9999;
 
   return (
@@ -22,14 +24,14 @@ export default function PriceFilterBadge({ amount, label, imageUrl, onPress }: P
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={S.badgeImage} resizeMode="contain" />
       ) : (
-        /* Permanent fallback design: Completely static background with absolutely no state color switching */
-        <View style={S.fallbackCard}>
-          <Text style={S.fallbackPrefix}>
-            {isAll ? 'All' : 'Under'}
+        <View style={[S.fallbackCard, active && S.fallbackCardActive]}>
+          <Text style={[S.fallbackPrefix, active && S.fallbackPrefixActive]}>
+            {isAll ? t.priceFilterBadge.all : t.priceFilterBadge.under}
           </Text>
-          <Text style={S.fallbackAmount}>
-            {isAll ? 'Prices' : `₹${amount}`}
+          <Text style={[S.fallbackAmount, active && S.fallbackAmountActive]}>
+            {isAll ? t.priceFilterBadge.prices : `₹${amount}`}
           </Text>
+          {active && <View style={S.underline} />}
         </View>
       )}
     </TouchableOpacity>
@@ -50,10 +52,13 @@ const S = StyleSheet.create({
     width: 84,
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#F4F6F8', // Static neutral card canvas background
+    backgroundColor: '#F4F6F8',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
+  },
+  fallbackCardActive: {
+    backgroundColor: '#E8F5E9',
   },
   fallbackPrefix: {
     fontSize: 10,
@@ -61,9 +66,24 @@ const S = StyleSheet.create({
     color: '#667085',
     textTransform: 'uppercase',
   },
+  fallbackPrefixActive: {
+    color: '#2E7D32',
+  },
   fallbackAmount: {
     fontSize: 14,
     fontWeight: '800',
     color: '#1D2939',
+  },
+  fallbackAmountActive: {
+    color: '#2E7D32',
+  },
+  underline: {
+    position: 'absolute',
+    bottom: 4,
+    left: 12,
+    right: 12,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#2E7D32',
   },
 });

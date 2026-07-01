@@ -59,12 +59,15 @@ export default function BottomSheet({
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardAvoidingView style={styles.overlay} behavior="padding">
           <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
-          <GestureDetector gesture={pan}>
-            <Animated.View style={[styles.sheet, { height, paddingBottom: insets.bottom }, animStyle]}>
-              <View style={styles.handle} />
-              {children}
-            </Animated.View>
-          </GestureDetector>
+          <Animated.View style={[styles.sheet, { height, paddingBottom: insets.bottom }, animStyle]}>
+            {/* Only the handle area is draggable — keeps the content area free for taps and the slider */}
+            <GestureDetector gesture={pan}>
+              <View style={styles.handleArea}>
+                <View style={styles.handle} />
+              </View>
+            </GestureDetector>
+            {children}
+          </Animated.View>
         </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
@@ -84,12 +87,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
   },
+  handleArea: {
+    alignItems: "center",
+    paddingVertical: 10,
+    marginHorizontal: -20,
+  },
   handle: {
     width: 50,
     height: 5,
     borderRadius: 10,
     backgroundColor: "#DDD",
-    alignSelf: "center",
-    marginBottom: 15,
   },
 });
