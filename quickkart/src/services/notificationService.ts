@@ -1,7 +1,16 @@
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance } from '@notifee/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase.native';
+import { strings, Language } from '../localization/strings';
+import { LANGUAGE_STORAGE_KEY } from '../localization/LanguageContext';
+
+async function getNotificationStrings() {
+  const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const language: Language = saved && saved in strings ? (saved as Language) : 'en';
+  return strings[language].notifications;
+}
 
 export const CHANNEL_ORDERS = 'orders';
 export const CHANNEL_STOCK = 'stock';
@@ -89,9 +98,10 @@ export async function unsubscribeFromStockTopic(sku: string): Promise<void> {
 }
 
 export async function showLocalOrderNotification(orderTotal: number, orderId: string) {
+  const t = await getNotificationStrings();
   await notifee.displayNotification({
-    title: '🛒 Order Placed!',
-    body: `Your order of ₹${orderTotal} has been placed successfully. We'll deliver soon!`,
+    title: t.orderPlacedTitle,
+    body: t.orderPlacedBody(orderTotal),
     data: { type: 'order', orderId },
     android: {
       channelId: CHANNEL_ORDERS,
@@ -101,9 +111,10 @@ export async function showLocalOrderNotification(orderTotal: number, orderId: st
 }
 
 export async function showLocalDeliveryNotification(orderId: string) {
+  const t = await getNotificationStrings();
   await notifee.displayNotification({
-    title: '📦 Order Delivered!',
-    body: 'Your order has been delivered. Enjoy your items!',
+    title: t.orderDeliveredTitle,
+    body: t.orderDeliveredBody,
     data: { type: 'order', orderId },
     android: {
       channelId: CHANNEL_ORDERS,

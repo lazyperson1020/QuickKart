@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, ReactNo
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { strings, Language, TranslationSchema } from './strings';
 
-const LANGUAGE_STORAGE_KEY = 'app_language';
+export const LANGUAGE_STORAGE_KEY = 'app_language';
 
 interface LanguageContextValue {
   language: Language;

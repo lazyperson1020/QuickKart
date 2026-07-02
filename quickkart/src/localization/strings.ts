@@ -152,6 +152,12 @@ export const strings = {
       title: 'Order Placed!',
       subtitle: 'Your order has been confirmed\nand will be delivered soon.',
     },
+    notifications: {
+      orderPlacedTitle: '🛒 Order Placed!',
+      orderPlacedBody: (orderTotal: number) => `Your order of ₹${orderTotal} has been placed successfully. We'll deliver soon!`,
+      orderDeliveredTitle: '📦 Order Delivered!',
+      orderDeliveredBody: 'Your order has been delivered. Enjoy your items!',
+    },
     orderDetails: {
       pdfGenFailedTitle: 'PDF Generation Failed',
       pdfGenFailedMessage: 'Could not generate the invoice. Please try again.',
@@ -716,6 +722,12 @@ export const strings = {
     orderPlaced: {
       title: 'ऑर्डर प्लेस हो गया!',
       subtitle: 'आपका ऑर्डर कन्फर्म हो गया है\nऔर जल्द ही डिलीवर किया जाएगा।',
+    },
+    notifications: {
+      orderPlacedTitle: '🛒 ऑर्डर प्लेस हो गया!',
+      orderPlacedBody: (orderTotal: number) => `आपका ₹${orderTotal} का ऑर्डर सफलतापूर्वक प्लेस हो गया है। हम जल्द ही डिलीवर करेंगे!`,
+      orderDeliveredTitle: '📦 ऑर्डर डिलीवर हो गया!',
+      orderDeliveredBody: 'आपका ऑर्डर डिलीवर हो गया है। अपने सामान का आनंद लें!',
     },
     orderDetails: {
       pdfGenFailedTitle: 'PDF जनरेट करने में विफल',
