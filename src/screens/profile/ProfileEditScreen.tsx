@@ -1,0 +1,192 @@
+import React, { useEffect, useState } from "react";
+import {
+  View, Text, TextInput, TouchableOpacity, ScrollView,
+  Alert, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../../navigation/types";
+import { deleteUser } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../../../firebase.native";
+import { useTranslation } from "../../localization/LanguageContext";
+
+const PURPLE = "#35035C";
+
+export default function ProfileEditPage() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const d = snap.data();
+          setName(d.name ?? "");
+          setContact(d.contact ?? "");
+          setEmail(d.email ?? user.email ?? "");
+        }
+      } catch {
+        Alert.alert(t.profile.errorTitle, t.profileEdit.failedToLoadProfile);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { Alert.alert(t.profile.errorTitle, t.profileEdit.nameEmpty); return; }
+    setSaving(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      await updateDoc(doc(db, "users", user.uid), { name: name.trim(), contact: contact.trim() });
+      Alert.alert(t.profileEdit.success, t.profileEdit.profileUpdated);
+    } catch {
+      Alert.alert(t.profile.errorTitle, t.profileEdit.failedToUpdateProfile);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t.profileEdit.deleteAccountTitle,
+      t.profileEdit.deleteAccountConfirm,
+      [
+        { text: t.common.cancel, style: "cancel" },
+        {
+          text: t.addressSelector.delete, style: "destructive", onPress: async () => {
+            try {
+              const user = auth.currentUser;
+              if (!user) return;
+              await deleteUser(user);
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            } catch (e: any) {
+              Alert.alert(t.profile.errorTitle, e.message ?? t.profileEdit.failedToDeleteAccount);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={PURPLE} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color="#111" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t.profileEdit.headerTitle}</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+          <Field label={t.profileEdit.nameLabel} value={name} onChange={setName} placeholder={t.profileEdit.namePlaceholder} />
+          <Field
+            label={t.profileEdit.mobileLabel}
+            value={contact}
+            onChange={setContact}
+            placeholder={t.profileEdit.mobilePlaceholder}
+            keyboardType="phone-pad"
+          />
+          <Field
+            label={t.profileEdit.emailLabel}
+            value={email}
+            onChange={() => {}}
+            placeholder={t.profileEdit.emailPlaceholder}
+            editable={false}
+            hint={t.profileEdit.emailHint}
+          />
+
+          <TouchableOpacity
+            style={[styles.submitBtn, saving && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.submitText}>{saving ? t.profileEdit.saving : t.profileEdit.submit}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.7}>
+            <Text style={styles.deleteTitle}>{t.profileEdit.deleteAccountTitle}</Text>
+          </TouchableOpacity>
+          <Text style={styles.deleteDesc}>
+            {t.profileEdit.deleteAccountDesc}
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function Field({
+  label, value, onChange, placeholder, keyboardType, editable = true, hint,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; keyboardType?: any; editable?: boolean; hint?: string;
+}) {
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        style={[styles.input, !editable && { color: "#888" }]}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        keyboardType={keyboardType}
+        editable={editable}
+        placeholderTextColor="#AAA"
+      />
+      {hint && <Text style={styles.hint}>{hint}</Text>}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: "#F0F0F0",
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
+  fieldLabel: { fontSize: 14, fontWeight: "600", color: PURPLE, marginBottom: 8 },
+  input: {
+    backgroundColor: "#EDE7FF", borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, color: "#111",
+  },
+  hint: { marginTop: 6, fontSize: 12, color: "#AAA" },
+  submitBtn: {
+    backgroundColor: PURPLE, borderRadius: 14,
+    paddingVertical: 16, alignItems: "center",
+    marginTop: 8, marginBottom: 32,
+  },
+  submitText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  divider: { height: 1, backgroundColor: "#EEE", marginBottom: 24 },
+  deleteTitle: { fontSize: 18, fontWeight: "700", color: "#e91e63", marginBottom: 8 },
+  deleteDesc: { fontSize: 14, color: "#666", lineHeight: 22 },
+});
