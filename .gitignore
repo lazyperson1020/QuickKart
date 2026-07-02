@@ -102,3 +102,5 @@ quickkart/.metro-bundler/
 *.swp
 *.swo
 *~
+
+.claude
