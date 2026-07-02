@@ -1,0 +1,88 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+use_modular_headers!
+
+target 'quickkart' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+      end
+    end
+
+    # fmt/base.h unconditionally redefines FMT_USE_CONSTEVAL=1 when Apple clang
+    # >= 14 is detected, ignoring any -D flag. Patch the source directly so
+    # FMT_CONSTEVAL expands to constexpr instead of consteval (Xcode 26 issue).
+    fmt_base = "#{installer.sandbox.root}/fmt/include/fmt/base.h"
+    if File.exist?(fmt_base)
+      content = File.read(fmt_base)
+      patched = content.sub(
+        "#  define FMT_CONSTEVAL consteval\n",
+        "#  define FMT_CONSTEVAL constexpr  // patched: consteval broken in Xcode 26\n"
+      )
+      if patched != content
+        FileUtils.chmod(0644, fmt_base)
+        File.write(fmt_base, patched)
+      end
+    end
+
+    # React-jsitooling.modulemap and React-RuntimeCore.modulemap are both in the
+    # react_runtime/ directory and both use 'umbrella header', which Xcode 26's
+    # clang rejects ("Umbrella for module already covers this directory").
+    # Fix: rename the module and drop umbrella so only RuntimeCore is the umbrella.
+    jsitooling_map = "#{installer.sandbox.root}/Target Support Files/React-jsitooling/React-jsitooling.modulemap"
+    if File.exist?(jsitooling_map)
+      FileUtils.chmod(0644, jsitooling_map)
+      File.write(jsitooling_map, <<~MODULEMAP)
+        module React_jsitooling {
+          header "React-jsitooling-umbrella.h"
+          export *
+        }
+      MODULEMAP
+    end
+
+    # React-RuntimeApple.modulemap and ReactCommon.modulemap are both in the
+    # ReactCommon/ directory and both declare 'module ReactCommon', which Xcode 26's
+    # clang rejects ("Redefinition of module 'ReactCommon'").
+    # Fix: rename React-RuntimeApple's module and drop umbrella.
+    runtimeapple_map = "#{installer.sandbox.root}/Target Support Files/React-RuntimeApple/React-RuntimeApple.modulemap"
+    if File.exist?(runtimeapple_map)
+      FileUtils.chmod(0644, runtimeapple_map)
+      File.write(runtimeapple_map, <<~MODULEMAP)
+        module React_RuntimeApple {
+          header "React-RuntimeApple-umbrella.h"
+          export *
+        }
+      MODULEMAP
+    end
+  end
+end
